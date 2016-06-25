@@ -1,0 +1,15 @@
+all_props: [attachments.max.post, mail.smtp.auth, encoding, mail.activationKey.messageFile,
+  mail.newPm.subject, attachments.images.thumb.box.show, mail.lostPassword.subject,
+  posts.cache.size, mail.sender, homepage.link, mail.smtp.host, forum.page.metatag.keywords,
+  mail.charset, registration.enabled, topic.recent, avatar.maxHeight, hot.topic.begin,
+  mail.lostPassword.messageFile, mail.smtp.ssl, forum.link, html.tags.welcome, avatar.maxWidth,
+  mail.notify.answers, mail.user.email.auth, posts.new.delay, mail.smtp.password,
+  posts.cache.enabled, topicsPerPage, mail.newAnswer.subject, i18n.board.default,
+  postsPerPage, forum.page.title, forum.page.metatag.description, rss.enabled, mail.newPm.messageFile,
+  mail.smtp.username, attachments.icon, mail.messageFormat, usersPerPage, mail.smtp.port,
+  forum.name, attachments.images.thumb.maxsize.h, captcha.registration, attachments.images.createthumb,
+  attachments.images.thumb.maxsize.w, mail.newAnswer.messageFile, mail.activationKey.subject]
+immutable: [posts.cache.size, topic.recent, topicsPerPage]
+internal: []
+other: []
+updated: [html.tags.welcome]

@@ -1,0 +1,4 @@
++javax.servlet.http.Cookie
+<javax.servlet.http.Cookie,java.lang.String>
+^<javax.servlet.http.Cookie:setValue>
+<javax.servlet.http.Cookie:Cookie(Ljava/lang/String;Ljava/lang/String;)V>

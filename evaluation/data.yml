@@ -1,0 +1,68 @@
+memory:
+  jforum:
+    base: [/home/jtoman/workspace/conf-update/evaluation/jforum/data/base/memory-1460153133,
+      /home/jtoman/workspace/conf-update/evaluation/jforum/data/base/memory-1460153933,
+      /home/jtoman/workspace/conf-update/evaluation/jforum/data/base/memory-1460154611,
+      /home/jtoman/workspace/conf-update/evaluation/jforum/data/base/memory-1460155201,
+      /home/jtoman/workspace/conf-update/evaluation/jforum/data/base/memory-1460155995]
+    inst: [/home/jtoman/workspace/conf-update/evaluation/jforum/data/inst/memory-1460152639,
+      /home/jtoman/workspace/conf-update/evaluation/jforum/data/inst/memory-1460153451,
+      /home/jtoman/workspace/conf-update/evaluation/jforum/data/inst/memory-1460154234,
+      /home/jtoman/workspace/conf-update/evaluation/jforum/data/inst/memory-1460154874,
+      /home/jtoman/workspace/conf-update/evaluation/jforum/data/inst/memory-1460155510]
+  openfire:
+    base: [/home/jtoman/workspace/conf-update/evaluation/openfire/data/base/memory-1460103508,
+      /home/jtoman/workspace/conf-update/evaluation/openfire/data/base/memory-1460104412,
+      /home/jtoman/workspace/conf-update/evaluation/openfire/data/base/memory-1460105314,
+      /home/jtoman/workspace/conf-update/evaluation/openfire/data/base/memory-1460106218,
+      /home/jtoman/workspace/conf-update/evaluation/openfire/data/base/memory-1460107124]
+    inst: [/home/jtoman/workspace/conf-update/evaluation/openfire/data/inst-mem/memory-1460103073,
+      /home/jtoman/workspace/conf-update/evaluation/openfire/data/inst-mem/memory-1460103976,
+      /home/jtoman/workspace/conf-update/evaluation/openfire/data/inst-mem/memory-1460104879,
+      /home/jtoman/workspace/conf-update/evaluation/openfire/data/inst-mem/memory-1460105783,
+      /home/jtoman/workspace/conf-update/evaluation/openfire/data/inst-mem/memory-1460106689]
+  subsonic:
+    base: [/home/jtoman/workspace/conf-update/evaluation/subsonic/data/base/memory-1460110456,
+      /home/jtoman/workspace/conf-update/evaluation/subsonic/data/base/memory-1460110983,
+      /home/jtoman/workspace/conf-update/evaluation/subsonic/data/base/memory-1460111509,
+      /home/jtoman/workspace/conf-update/evaluation/subsonic/data/base/memory-1460112036,
+      /home/jtoman/workspace/conf-update/evaluation/subsonic/data/base/memory-1460112561]
+    inst: [/home/jtoman/workspace/conf-update/evaluation/subsonic/data/inst/memory-1460110188,
+      /home/jtoman/workspace/conf-update/evaluation/subsonic/data/inst/memory-1460110718,
+      /home/jtoman/workspace/conf-update/evaluation/subsonic/data/inst/memory-1460111246,
+      /home/jtoman/workspace/conf-update/evaluation/subsonic/data/inst/memory-1460111771,
+      /home/jtoman/workspace/conf-update/evaluation/subsonic/data/inst/memory-1460112300]
+runtime:
+  jforum:
+    base: [/home/jtoman/workspace/conf-update/evaluation/jforum/data/base/respdata-1460149953.csv,
+      /home/jtoman/workspace/conf-update/evaluation/jforum/data/base/respdata-1460150505.csv,
+      /home/jtoman/workspace/conf-update/evaluation/jforum/data/base/respdata-1460151162.csv,
+      /home/jtoman/workspace/conf-update/evaluation/jforum/data/base/respdata-1460151764.csv,
+      /home/jtoman/workspace/conf-update/evaluation/jforum/data/base/respdata-1460152357.csv]
+    inst: [/home/jtoman/workspace/conf-update/evaluation/jforum/data/inst/respdata-1460149628.csv,
+      /home/jtoman/workspace/conf-update/evaluation/jforum/data/inst/respdata-1460150209.csv,
+      /home/jtoman/workspace/conf-update/evaluation/jforum/data/inst/respdata-1460150761.csv,
+      /home/jtoman/workspace/conf-update/evaluation/jforum/data/inst/respdata-1460151444.csv,
+      /home/jtoman/workspace/conf-update/evaluation/jforum/data/inst/respdata-1460152032.csv]
+  openfire:
+    base: [/home/jtoman/workspace/conf-update/evaluation/openfire/data/base/20160408-0003/data,
+      /home/jtoman/workspace/conf-update/evaluation/openfire/data/base/20160408-0018/data,
+      /home/jtoman/workspace/conf-update/evaluation/openfire/data/base/20160408-0033/data,
+      /home/jtoman/workspace/conf-update/evaluation/openfire/data/base/20160408-0048/data,
+      /home/jtoman/workspace/conf-update/evaluation/openfire/data/base/20160408-0103/data]
+    inst: [/home/jtoman/workspace/conf-update/evaluation/openfire/data/inst-baseline/20160407-2356/data,
+      /home/jtoman/workspace/conf-update/evaluation/openfire/data/inst-baseline/20160408-0011/data,
+      /home/jtoman/workspace/conf-update/evaluation/openfire/data/inst-baseline/20160408-0026/data,
+      /home/jtoman/workspace/conf-update/evaluation/openfire/data/inst-baseline/20160408-0041/data,
+      /home/jtoman/workspace/conf-update/evaluation/openfire/data/inst-baseline/20160408-0056/data]
+  subsonic:
+    base: [/home/jtoman/workspace/conf-update/evaluation/subsonic/data/base/respdata-1460107986.csv,
+      /home/jtoman/workspace/conf-update/evaluation/subsonic/data/base/respdata-1460108472.csv,
+      /home/jtoman/workspace/conf-update/evaluation/subsonic/data/base/respdata-1460108962.csv,
+      /home/jtoman/workspace/conf-update/evaluation/subsonic/data/base/respdata-1460109450.csv,
+      /home/jtoman/workspace/conf-update/evaluation/subsonic/data/base/respdata-1460109936.csv]
+    inst: [/home/jtoman/workspace/conf-update/evaluation/subsonic/data/inst/respdata-1460107687.csv,
+      /home/jtoman/workspace/conf-update/evaluation/subsonic/data/inst/respdata-1460108236.csv,
+      /home/jtoman/workspace/conf-update/evaluation/subsonic/data/inst/respdata-1460108720.csv,
+      /home/jtoman/workspace/conf-update/evaluation/subsonic/data/inst/respdata-1460109211.csv,
+      /home/jtoman/workspace/conf-update/evaluation/subsonic/data/inst/respdata-1460109696.csv]

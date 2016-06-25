@@ -1,0 +1,13 @@
+#include string.rules
+
++javax.mail.Session
+<javax.mail.Session,javax.mail.Transport>
+!!javax.mail.Transport:connect
+!!javax.mail.Transport:sendMessage
+<javax.mail.internet.InternetAddress:InternetAddress>
+
+^<javax.mail.Message:setSubject>
+^<javax.mail.internet.MimeMessage:setSubject>
+^<javax.mail.internet.MimeMessage:setText>
+^<javax.mail.internet.MimeMessage:setContent>
+^<javax.mail.internet.MimeMessage:setFrom>

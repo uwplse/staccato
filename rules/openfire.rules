@@ -1,0 +1,5 @@
+#include string.rules
+#include staccato.rules
+
+<org.xmpp.packet.JID:JID(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V>
+<org.xmpp.packet.JID:getDomain()Ljava/lang/String;>

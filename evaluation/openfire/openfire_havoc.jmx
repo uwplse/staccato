@@ -1,0 +1,386 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="2.7" jmeter="2.12.20150413">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Test Plan" enabled="true">
+      <stringProp name="TestPlan.comments"></stringProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+        <collectionProp name="Arguments.arguments"/>
+      </elementProp>
+      <stringProp name="TestPlan.user_define_classpath"></stringProp>
+    </TestPlan>
+    <hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">${__P(ITERATIONS,150)}</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">8</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">0</stringProp>
+        <longProp name="ThreadGroup.start_time">1448311638000</longProp>
+        <longProp name="ThreadGroup.end_time">1448311638000</longProp>
+        <boolProp name="ThreadGroup.scheduler">false</boolProp>
+        <stringProp name="ThreadGroup.duration"></stringProp>
+        <stringProp name="ThreadGroup.delay"></stringProp>
+      </ThreadGroup>
+      <hashTree>
+        <OnceOnlyController guiclass="OnceOnlyControllerGui" testclass="OnceOnlyController" testname="Once Only Controller" enabled="true"/>
+        <hashTree>
+          <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="setup" enabled="true">
+            <stringProp name="BeanShellSampler.query">ctx.getVariables().putObject(&quot;staccato.rand&quot;, new Random(ctx.getThread().getThreadNum()));
+ctx.getVariables().putObject(&quot;staccato.group22&quot;, new String[]{&quot;org.jivesoftware.openfire.roster.DefaultRosterItemProvider&quot;, &quot;org.jivesoftware.openfire.roster.MyRosterItemProvider&quot;});
+ctx.getVariables().putObject(&quot;staccato.group23&quot;, new String[]{&quot;org.jivesoftware.openfire.auth.DefaultAuthProvider&quot;, &quot;org.jivesoftware.openfire.auth.JDBCAuthProvider&quot;, &quot;org.jivesoftware.openfire.auth.HybridAuthProvider&quot;});
+ctx.getVariables().putObject(&quot;staccato.group24&quot;, new String[]{&quot;org.jivesoftware.openfire.admin.DefaultAdminProvider&quot;, &quot;org.jivesoftware.openfire.admin.MyAdminProvider&quot;});
+ctx.getVariables().putObject(&quot;staccato.group25&quot;, new String[]{&quot;org.jivesoftware.openfire.user.DefaultUserProvider&quot;, &quot;org.jivesoftware.openfire.user.JDBCUserProvider&quot;, &quot;org.jivesoftware.openfire.user.HybridUserProvider&quot;});
+ctx.getVariables().putObject(&quot;staccato.group26&quot;, new String[]{&quot;false&quot;, &quot;true&quot;});
+ctx.getVariables().putObject(&quot;staccato.group2&quot;, new String[]{&quot;testuser0,testuser1,testuser2&quot;, &quot;testuser3,testuser4,testuser5&quot;});
+ctx.getVariables().putObject(&quot;staccato.group1&quot;, new String[]{&quot;/tmp/audit&quot;, &quot;/tmp/audit2&quot;});
+ctx.getVariables().putObject(&quot;staccato.group27&quot;, new String[]{&quot;false&quot;, &quot;true&quot;});
+ctx.getVariables().putObject(&quot;staccato.group28&quot;, new String[]{&quot;true&quot;, &quot;false&quot;});
+ctx.getVariables().putObject(&quot;staccato.group29&quot;, new String[]{&quot;true&quot;, &quot;false&quot;});
+ctx.getVariables().putObject(&quot;staccato.group4&quot;, new String[]{&quot;5223&quot;, &quot;5225&quot;});
+ctx.getVariables().putObject(&quot;staccato.group3&quot;, new String[]{&quot;5222&quot;, &quot;5224&quot;});
+ctx.getVariables().putObject(&quot;staccato.group30&quot;, new String[]{&quot;true&quot;, &quot;false&quot;});
+ctx.getVariables().putObject(&quot;staccato.group31&quot;, new String[]{&quot;true&quot;, &quot;false&quot;});
+ctx.getVariables().putObject(&quot;staccato.group32&quot;, new String[]{&quot;false&quot;, &quot;true&quot;});
+ctx.getVariables().putObject(&quot;staccato.group5&quot;, new String[]{&quot;ssjvvcocnn&quot;, &quot;iodrlsehll&quot;, &quot;scecyptvxj&quot;});
+ctx.getVariables().putObject(&quot;staccato.group9&quot;, new String[]{&quot;tgmbkkebgu&quot;, &quot;wsfiomejzc&quot;});
+ctx.getVariables().putObject(&quot;staccato.group8&quot;, new String[]{&quot;utjgtznycf&quot;, &quot;dstyuiabrx&quot;});
+ctx.getVariables().putObject(&quot;staccato.group6&quot;, new String[]{&quot;localhost&quot;, &quot;staccato&quot;, &quot;127.0.0.1&quot;});
+ctx.getVariables().putObject(&quot;staccato.group33&quot;, new String[]{&quot;true&quot;, &quot;false&quot;});
+ctx.getVariables().putObject(&quot;staccato.group7&quot;, new String[]{&quot;25&quot;, &quot;2500&quot;});
+ctx.getVariables().putObject(&quot;staccato.group34&quot;, new String[]{&quot;false&quot;, &quot;true&quot;});
+ctx.getVariables().putObject(&quot;staccato.group10&quot;, new String[]{&quot;swhmcykhxa&quot;, &quot;groqqfnypc&quot;});
+ctx.getVariables().putObject(&quot;staccato.group35&quot;, new String[]{&quot;true&quot;, &quot;false&quot;});
+ctx.getVariables().putObject(&quot;staccato.group36&quot;, new String[]{&quot;true&quot;, &quot;false&quot;});
+ctx.getVariables().putObject(&quot;staccato.group12&quot;, new String[]{&quot;7443&quot;, &quot;7444&quot;});
+ctx.getVariables().putObject(&quot;staccato.group37&quot;, new String[]{&quot;true&quot;, &quot;false&quot;});
+ctx.getVariables().putObject(&quot;staccato.group13&quot;, new String[]{&quot;*&quot;, &quot;localhost&quot;, &quot;www.google.com,localhost&quot;});
+ctx.getVariables().putObject(&quot;staccato.group16&quot;, new String[]{&quot;ojivnbsqze&quot;, &quot;pdmpciiazi&quot;, &quot;mmtjjblcfc&quot;});
+ctx.getVariables().putObject(&quot;staccato.group14&quot;, new String[]{&quot;qiukwpvlho&quot;, &quot;swnopuufgl&quot;});
+ctx.getVariables().putObject(&quot;staccato.group11&quot;, new String[]{&quot;7070&quot;, &quot;7071&quot;});
+ctx.getVariables().putObject(&quot;staccato.group15&quot;, new String[]{&quot;sahtrgnhos&quot;, &quot;xcwqahouzt&quot;, &quot;iiqvrcsigt&quot;});
+ctx.getVariables().putObject(&quot;staccato.group39&quot;, new String[]{&quot;true&quot;, &quot;false&quot;});
+ctx.getVariables().putObject(&quot;staccato.group17&quot;, new String[]{&quot;ptftajmang&quot;, &quot;kwjpkjflfd&quot;, &quot;mzlhzibeou&quot;, &quot;sxwaqfbtpq&quot;});
+ctx.getVariables().putObject(&quot;staccato.group38&quot;, new String[]{&quot;true&quot;, &quot;false&quot;});
+ctx.getVariables().putObject(&quot;staccato.group41&quot;, new String[]{&quot;3&quot;, &quot;1&quot;, &quot;2&quot;});
+ctx.getVariables().putObject(&quot;staccato.group40&quot;, new String[]{&quot;5&quot;, &quot;4&quot;, &quot;6&quot;});
+ctx.getVariables().putObject(&quot;staccato.group42&quot;, new String[]{&quot;true&quot;, &quot;false&quot;});
+ctx.getVariables().putObject(&quot;staccato.group43&quot;, new String[]{&quot;true&quot;, &quot;false&quot;});
+ctx.getVariables().putObject(&quot;staccato.group19&quot;, new String[]{&quot;127.0.0.1,127.0.*.*&quot;, &quot;127.0.0.*&quot;});
+ctx.getVariables().putObject(&quot;staccato.group44&quot;, new String[]{&quot;true&quot;, &quot;false&quot;});
+ctx.getVariables().putObject(&quot;staccato.group18&quot;, new String[]{&quot;127.0.0.1,127.*.*.*&quot;, &quot;127.*.*.*&quot;});
+ctx.getVariables().putObject(&quot;staccato.group45&quot;, new String[]{&quot;true&quot;, &quot;false&quot;});
+ctx.getVariables().putObject(&quot;staccato.group46&quot;, new String[]{&quot;0&quot;, &quot;-1&quot;, &quot;1&quot;, &quot;2147483647&quot;});
+ctx.getVariables().putObject(&quot;staccato.group47&quot;, new String[]{&quot;notavailable&quot;, &quot;optional&quot;, &quot;required&quot;});
+ctx.getVariables().putObject(&quot;staccato.group48&quot;, new String[]{&quot;notreq&quot;, &quot;req&quot;, &quot;custom&quot;});
+ctx.getVariables().putObject(&quot;staccato.group49&quot;, new String[]{&quot;notreq&quot;, &quot;req&quot;, &quot;custom&quot;});
+ctx.getVariables().putObject(&quot;staccato.group50&quot;, new String[]{&quot;notavailable&quot;, &quot;available&quot;});
+ctx.getVariables().putObject(&quot;staccato.group51&quot;, new String[]{&quot;notavailable&quot;, &quot;available&quot;});
+ctx.getVariables().putObject(&quot;staccato.group52&quot;, new String[]{&quot;notavailable&quot;, &quot;optional&quot;});
+ctx.getVariables().putObject(&quot;staccato.group21&quot;, new String[]{&quot;8055&quot;, &quot;8056&quot;});
+ctx.getVariables().putObject(&quot;staccato.group20&quot;, new String[]{&quot;localhost&quot;, &quot;127.0.0.1&quot;});
+ctx.getVariables().putObject(&quot;staccato.group53&quot;, new String[]{&quot;true&quot;, &quot;false&quot;});
+ctx.getVariables().putObject(&quot;staccato.group54&quot;, new String[]{&quot;true&quot;, &quot;false&quot;});
+ctx.getVariables().putObject(&quot;staccato.group55&quot;, new String[]{&quot;false&quot;, &quot;true&quot;});
+</stringProp>
+            <stringProp name="BeanShellSampler.filename"></stringProp>
+            <stringProp name="BeanShellSampler.parameters"></stringProp>
+            <boolProp name="BeanShellSampler.resetInterpreter">false</boolProp>
+          </BeanShellSampler>
+          <hashTree/>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="login request" enabled="true">
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+              <collectionProp name="Arguments.arguments">
+                <elementProp name="username" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                  <stringProp name="Argument.value">jtoman</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                  <boolProp name="HTTPArgument.use_equals">true</boolProp>
+                  <stringProp name="Argument.name">username</stringProp>
+                </elementProp>
+                <elementProp name="password" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                  <stringProp name="Argument.value">foobar</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                  <boolProp name="HTTPArgument.use_equals">true</boolProp>
+                  <stringProp name="Argument.name">password</stringProp>
+                </elementProp>
+                <elementProp name="login" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                  <stringProp name="Argument.value">true</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                  <boolProp name="HTTPArgument.use_equals">true</boolProp>
+                  <stringProp name="Argument.name">login</stringProp>
+                </elementProp>
+              </collectionProp>
+            </elementProp>
+            <stringProp name="HTTPSampler.domain"></stringProp>
+            <stringProp name="HTTPSampler.port"></stringProp>
+            <stringProp name="HTTPSampler.connect_timeout"></stringProp>
+            <stringProp name="HTTPSampler.response_timeout"></stringProp>
+            <stringProp name="HTTPSampler.protocol"></stringProp>
+            <stringProp name="HTTPSampler.contentEncoding"></stringProp>
+            <stringProp name="HTTPSampler.path">login.jsp</stringProp>
+            <stringProp name="HTTPSampler.method">POST</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
+            <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+            <boolProp name="HTTPSampler.monitor">false</boolProp>
+            <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
+          </HTTPSamplerProxy>
+          <hashTree/>
+        </hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="havoc request" enabled="true">
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+            <collectionProp name="Arguments.arguments"/>
+          </elementProp>
+          <stringProp name="HTTPSampler.domain"></stringProp>
+          <stringProp name="HTTPSampler.port"></stringProp>
+          <stringProp name="HTTPSampler.connect_timeout"></stringProp>
+          <stringProp name="HTTPSampler.response_timeout"></stringProp>
+          <stringProp name="HTTPSampler.protocol"></stringProp>
+          <stringProp name="HTTPSampler.contentEncoding"></stringProp>
+          <stringProp name="HTTPSampler.path"></stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+          <boolProp name="HTTPSampler.monitor">false</boolProp>
+          <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <BeanShellPreProcessor guiclass="TestBeanGUI" testclass="BeanShellPreProcessor" testname="BeanShell PreProcessor" enabled="true">
+            <boolProp name="resetInterpreter">false</boolProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="script">Random r = ctx.getVariables().getObject(&quot;staccato.rand&quot;);
+int controller_id = r.nextInt(10);
+if(controller_id == 0) {
+	sampler.setPath(&quot;server-properties.jsp&quot;);
+	sampler.addArgument(&quot;save&quot;, &quot;Save Property&quot;);
+	sampler.addArgument(&quot;propValue&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group22&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;propName&quot;, &quot;provider.roster.className&quot;);
+}
+else if(controller_id == 1) {
+	sampler.setPath(&quot;server-properties.jsp&quot;);
+	sampler.addArgument(&quot;save&quot;, &quot;Save Property&quot;);
+	sampler.addArgument(&quot;propValue&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group23&quot;))[r.nextInt(3)]);
+	sampler.addArgument(&quot;propName&quot;, &quot;provider.auth.className&quot;);
+}
+else if(controller_id == 2) {
+	sampler.setPath(&quot;server-properties.jsp&quot;);
+	sampler.addArgument(&quot;save&quot;, &quot;Save Property&quot;);
+	sampler.addArgument(&quot;propValue&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group24&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;propName&quot;, &quot;provider.admin.className&quot;);
+}
+else if(controller_id == 3) {
+	sampler.setPath(&quot;server-properties.jsp&quot;);
+	sampler.addArgument(&quot;save&quot;, &quot;Save Property&quot;);
+	sampler.addArgument(&quot;propValue&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group25&quot;))[r.nextInt(3)]);
+	sampler.addArgument(&quot;propName&quot;, &quot;provider.user.className&quot;);
+}
+else if(controller_id == 4) {
+	sampler.setPath(&quot;audit-policy.jsp&quot;);
+	sampler.addArgument(&quot;auditEnabled&quot;, &quot;true&quot;);
+	sampler.addArgument(&quot;auditMessages&quot;, r.nextBoolean() ? &quot;true&quot; : &quot;false&quot;);
+	sampler.addArgument(&quot;auditIQ&quot;, r.nextBoolean() ? &quot;true&quot; : &quot;false&quot;);
+	sampler.addArgument(&quot;auditPresence&quot;, r.nextBoolean() ? &quot;true&quot; : &quot;false&quot;);
+	sampler.addArgument(&quot;maxFileSize&quot;, (r.nextInt(16) + 0) + &quot;&quot;);
+	sampler.addArgument(&quot;maxTotalSize&quot;, (r.nextInt(1001) + 0) + &quot;&quot;);
+	sampler.addArgument(&quot;update&quot;, &quot;Save Settings&quot;);
+	sampler.addArgument(&quot;ignore&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group2&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;maxDays&quot;, (r.nextInt(5) + -1) + &quot;&quot;);
+	sampler.addArgument(&quot;logDir&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group1&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;logTimeout&quot;, (r.nextInt(360) + 1) + &quot;&quot;);
+}
+else if(controller_id == 5) {
+	sampler.setPath(&quot;client-connections-settings.jsp&quot;);
+	sampler.addArgument(&quot;idleDisco&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group27&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;sslEnabled&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group28&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;update&quot;, &quot;Save Settings&quot;);
+	sampler.addArgument(&quot;pingIdleClients&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group29&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;defaults&quot;, &quot;Restore Defaults&quot;);
+	sampler.addArgument(&quot;sslPort&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group4&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;port&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group3&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;clientIdle&quot;, (r.nextInt(361) + 360) + &quot;&quot;);
+}
+else if(controller_id == 6) {
+	sampler.setPath(&quot;compression-settings.jsp&quot;);
+	sampler.addArgument(&quot;clientEnabled&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group30&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;serverEnabled&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group31&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;update&quot;, &quot;Save Settings&quot;);
+}
+else if(controller_id == 7) {
+	sampler.setPath(&quot;offline-messages.jsp&quot;);
+	sampler.addArgument(&quot;strategy&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group41&quot;))[r.nextInt(3)]);
+	sampler.addArgument(&quot;quota&quot;, (r.nextInt(101) + 100) + &quot;&quot;);
+	sampler.addArgument(&quot;storeStrategy&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group40&quot;))[r.nextInt(3)]);
+	sampler.addArgument(&quot;update&quot;, &quot;Save Settings&quot;);
+}
+else if(controller_id == 8) {
+	sampler.setPath(&quot;reg-settings.jsp&quot;);
+	sampler.addArgument(&quot;inbandEnabled&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group43&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;allowedAnonymIPs&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group19&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;canChangePassword&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group44&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;allowedIPs&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group18&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;anonLogin&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group45&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;save&quot;, &quot;Save Settings&quot;);
+} else if(controller_id == 9) {
+	sampler.setPath(&quot;session-conflict.jsp&quot;);
+	sampler.addArgument(&quot;kickPolicy&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group46&quot;))[r.nextInt(4)]);
+	sampler.addArgument(&quot;kickValue&quot;, (r.nextInt(5) + 1) + &quot;&quot;);
+	sampler.addArgument(&quot;update&quot;, &quot;Save Settings&quot;);
+}
+/*else if(controller_id == 7) {
+	sampler.setPath(&quot;connection-managers-settings.jsp&quot;);
+	sampler.addArgument(&quot;managerEnabled&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group32&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;port&quot;, (r.nextInt(16) + 8000) + &quot;&quot;);
+	sampler.addArgument(&quot;defaultSecret&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group5&quot;))[r.nextInt(3)]);
+	sampler.addArgument(&quot;update&quot;, &quot;Save Settings&quot;);
+}
+else if(controller_id == 8) {
+	sampler.setPath(&quot;system-email.jsp&quot;);
+	sampler.addArgument(&quot;server_password&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group9&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;server_username&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group8&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;ssl&quot;, r.nextBoolean() ? &quot;true&quot; : &quot;false&quot;);
+	sampler.addArgument(&quot;host&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group6&quot;))[r.nextInt(3)]);
+	sampler.addArgument(&quot;test&quot;, &quot;Send Test Email...&quot;);
+	sampler.addArgument(&quot;debug&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group33&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;save&quot;, &quot;Save Changes&quot;);
+	sampler.addArgument(&quot;port&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group7&quot;))[r.nextInt(2)]);
+}
+else if(controller_id == 9) {
+	sampler.setPath(&quot;external-components-settings.jsp&quot;);
+	sampler.addArgument(&quot;componentEnabled&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group34&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;port&quot;, (r.nextInt(15) + 8016) + &quot;&quot;);
+	sampler.addArgument(&quot;defaultSecret&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group10&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;update&quot;, &quot;Save Settings&quot;);
+}
+else if(controller_id == 10) {
+	sampler.setPath(&quot;file-transfer-proxy.jsp&quot;);
+	sampler.addArgument(&quot;proxyEnabled&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group35&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;update&quot;, &quot;Save Settings&quot;);
+	sampler.addArgument(&quot;port&quot;, (r.nextInt(6) + 8045) + &quot;&quot;);
+}
+else if(controller_id == 11) {
+	sampler.setPath(&quot;http-bind.jsp&quot;);
+	sampler.addArgument(&quot;scriptSyntaxEnabled&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group36&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;securePort&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group12&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;httpBindEnabled&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group37&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;update&quot;, &quot;Save Settings&quot;);
+	sampler.addArgument(&quot;CORSDomains&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group13&quot;))[r.nextInt(3)]);
+	sampler.addArgument(&quot;XFFHostHeader&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group16&quot;))[r.nextInt(3)]);
+	sampler.addArgument(&quot;XFFHeader&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group14&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;port&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group11&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;XFFServerHeader&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group15&quot;))[r.nextInt(3)]);
+	sampler.addArgument(&quot;XFFEnabled&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group39&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;XFFHostName&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group17&quot;))[r.nextInt(4)]);
+	sampler.addArgument(&quot;CORSEnabled&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group38&quot;))[r.nextInt(2)]);
+}*/
+
+/*
+else if(controller_id == 13) {
+	sampler.setPath(&quot;private-data-settings.jsp&quot;);
+	sampler.addArgument(&quot;update&quot;, &quot;Save Settings&quot;);
+	sampler.addArgument(&quot;privateEnabled&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group42&quot;))[r.nextInt(2)]);
+}*/
+
+/*
+else if(controller_id == 16) {
+	sampler.setPath(&quot;ssl-settings.jsp&quot;);
+	sampler.addArgument(&quot;tls&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group47&quot;))[r.nextInt(3)]);
+	sampler.addArgument(&quot;selfSigned&quot;, r.nextBoolean() ? &quot;true&quot; : &quot;false&quot;);
+	sampler.addArgument(&quot;clientSecurityRequired&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group48&quot;))[r.nextInt(3)]);
+	sampler.addArgument(&quot;update&quot;, &quot;Save Settings&quot;);
+	sampler.addArgument(&quot;serverSecurityRequired&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group49&quot;))[r.nextInt(3)]);
+	sampler.addArgument(&quot;ssl&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group50&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;dialback&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group51&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;server_tls&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group52&quot;))[r.nextInt(2)]);
+}
+else if(controller_id == 17) {
+	sampler.setPath(&quot;manage-updates.jsp&quot;);
+	sampler.addArgument(&quot;proxyPort&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group21&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;update&quot;, &quot;Save Settings&quot;);
+	sampler.addArgument(&quot;proxyHost&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group20&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;notificationsEnabled&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group53&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;serviceEnabled&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group54&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;proxyEnabled&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group55&quot;))[r.nextInt(2)]);
+}
+*/
+</stringProp>
+          </BeanShellPreProcessor>
+          <hashTree/>
+        </hashTree>
+        <BeanShellTimer guiclass="TestBeanGUI" testclass="BeanShellTimer" testname="BeanShell Timer" enabled="false">
+          <stringProp name="filename"></stringProp>
+          <stringProp name="parameters"></stringProp>
+          <boolProp name="resetInterpreter">false</boolProp>
+          <stringProp name="script">return ctx.getVariables().getObject(&quot;staccato.rand&quot;).nextInt(500)</stringProp>
+        </BeanShellTimer>
+        <hashTree/>
+        <GaussianRandomTimer guiclass="GaussianRandomTimerGui" testclass="GaussianRandomTimer" testname="Gaussian Random Timer" enabled="true">
+          <stringProp name="ConstantTimer.delay">300</stringProp>
+          <stringProp name="RandomTimer.range">100.0</stringProp>
+        </GaussianRandomTimer>
+        <hashTree/>
+        <ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="HTTP Request Defaults" enabled="true">
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+            <collectionProp name="Arguments.arguments"/>
+          </elementProp>
+          <stringProp name="HTTPSampler.domain">localhost</stringProp>
+          <stringProp name="HTTPSampler.port">9090</stringProp>
+          <stringProp name="HTTPSampler.connect_timeout"></stringProp>
+          <stringProp name="HTTPSampler.response_timeout"></stringProp>
+          <stringProp name="HTTPSampler.protocol"></stringProp>
+          <stringProp name="HTTPSampler.contentEncoding"></stringProp>
+          <stringProp name="HTTPSampler.path"></stringProp>
+          <stringProp name="HTTPSampler.concurrentPool">4</stringProp>
+        </ConfigTestElement>
+        <hashTree/>
+        <CookieManager guiclass="CookiePanel" testclass="CookieManager" testname="HTTP Cookie Manager" enabled="true">
+          <collectionProp name="CookieManager.cookies"/>
+          <boolProp name="CookieManager.clearEachIteration">false</boolProp>
+        </CookieManager>
+        <hashTree/>
+        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="false">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <dataType>true</dataType>
+              <encoding>false</encoding>
+              <assertions>true</assertions>
+              <subresults>true</subresults>
+              <responseData>false</responseData>
+              <samplerData>false</samplerData>
+              <xml>false</xml>
+              <fieldNames>false</fieldNames>
+              <responseHeaders>false</responseHeaders>
+              <requestHeaders>false</requestHeaders>
+              <responseDataOnError>false</responseDataOnError>
+              <saveAssertionResultsFailureMessage>false</saveAssertionResultsFailureMessage>
+              <assertionsResultsToSave>0</assertionsResultsToSave>
+              <bytes>true</bytes>
+              <threadCounts>true</threadCounts>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
+        <hashTree/>
+      </hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>

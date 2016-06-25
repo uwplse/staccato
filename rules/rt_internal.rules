@@ -1,0 +1,11 @@
+#include rt.rules
+
+<java.lang.Integer:parseInt$$PHOSPHORTAGGED>
+<java.lang.Float:parseFloat$$PHOSPHORTAGGED>
+<java.lang.Double:parseDouble$$PHOSPHORTAGGED>
+<java.lang.Long:parseLong$$PHOSPHORTAGGED>
+
+<java.lang.Integer,java.lang.Integer>
+<java.lang.Float,java.lang.Float>
+<java.lang.Long,java.lang.Long>
+<java.lang.Double,java.lang.Double>

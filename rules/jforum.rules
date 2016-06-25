@@ -1,0 +1,7 @@
+#include rt.rules
+#include freemarker.rules
+#include mail.rules
+#include jdbc.rules
+#include staccato.rules
+
+@net.jforum.entities:set*

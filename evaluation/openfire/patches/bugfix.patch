@@ -1,0 +1,243 @@
+diff --git a/src/java/org/jivesoftware/openfire/admin/AdminManager.java b/src/java/org/jivesoftware/openfire/admin/AdminManager.java
+index 86e0b76..7895f59 100644
+--- a/src/java/org/jivesoftware/openfire/admin/AdminManager.java
++++ b/src/java/org/jivesoftware/openfire/admin/AdminManager.java
+@@ -80,7 +80,7 @@ public class AdminManager {
+ 
+     /* Cache of admin accounts */
+     private List<JID> adminList;
+-    private AdminProvider provider;
++    private volatile AdminProvider provider;
+ 
+     /**
+      * Constructs a AdminManager, propery listener, and setting up the provider.
+diff --git a/src/java/org/jivesoftware/openfire/audit/spi/AuditManagerImpl.java b/src/java/org/jivesoftware/openfire/audit/spi/AuditManagerImpl.java
+index 7fa5e29..69f278e 100644
+--- a/src/java/org/jivesoftware/openfire/audit/spi/AuditManagerImpl.java
++++ b/src/java/org/jivesoftware/openfire/audit/spi/AuditManagerImpl.java
+@@ -54,32 +54,31 @@ import edu.washington.cse.instrumentation.runtime.containers.StaccatoList;
+  * Implementation of the AuditManager interface.
+  */
+ public class AuditManagerImpl extends BasicModule implements AuditManager {
+-
+-    private boolean enabled;
+-    private boolean auditMessage;
+-    private boolean auditPresence;
+-    private boolean auditIQ;
+-    private boolean auditXPath;
++    private volatile boolean enabled;
++    private volatile boolean auditMessage;
++    private volatile boolean auditPresence;
++    private volatile boolean auditIQ;
++    private volatile boolean auditXPath;
+     private List xpath = new LinkedList();
+     private AuditorImpl auditor = null;
+     /**
+      * Max size in bytes that all audit log files may have. When the limit is reached
+      * oldest audit log files will be removed until total size is under the limit.
+      */
+-    private int maxTotalSize;
++    private volatile int maxTotalSize;
+     /**
+      * Max size in bytes that each audit log file may have. Once the limit has been
+      * reached a new audit file will be created.
+      */
+-    private int maxFileSize;
++    private volatile int maxFileSize;
+     /**
+      * Max number of days to keep audit information. Once the limit has been reached
+      * audit files that contain information that exceed the limit will be deleted.
+      */
+-    private int maxDays;
+-    private int logTimeout;
+-    private String logDir;
+-    private Collection<String> ignoreList = new ArrayList<String>();
++    private volatile int maxDays;
++    private volatile int logTimeout;
++    private volatile String logDir;
++    private volatile List<String> ignoreList = new ArrayList<String>();
+     private static final int MAX_TOTAL_SIZE = 1000;
+     private static final int MAX_FILE_SIZE = 10;
+     private static final int MAX_DAYS = -1;
+diff --git a/src/java/org/jivesoftware/openfire/audit/spi/AuditorImpl.java b/src/java/org/jivesoftware/openfire/audit/spi/AuditorImpl.java
+index 511f2c8..9b5da6b 100644
+--- a/src/java/org/jivesoftware/openfire/audit/spi/AuditorImpl.java
++++ b/src/java/org/jivesoftware/openfire/audit/spi/AuditorImpl.java
+@@ -98,7 +98,7 @@ public class AuditorImpl implements Auditor {
+     /**
+      * File (or better say directory) of the folder that contains the audit logs.
+      */
+-    private File baseFolder;
++    private volatile File baseFolder;
+ 
+     /**
+      * Queue that holds the audited packets that will be later saved to an XML file.
+diff --git a/src/java/org/jivesoftware/openfire/auth/HybridAuthProvider.java b/src/java/org/jivesoftware/openfire/auth/HybridAuthProvider.java
+index 88a4845..dbaf0e7 100644
+--- a/src/java/org/jivesoftware/openfire/auth/HybridAuthProvider.java
++++ b/src/java/org/jivesoftware/openfire/auth/HybridAuthProvider.java
+@@ -86,13 +86,13 @@ public class HybridAuthProvider implements AuthProvider {
+ 
+ 	private static final Logger Log = LoggerFactory.getLogger(HybridAuthProvider.class);
+ 
+-    private AuthProvider primaryProvider;
+-    private AuthProvider secondaryProvider;
+-    private AuthProvider tertiaryProvider;
++    private volatile AuthProvider primaryProvider;
++    private volatile AuthProvider secondaryProvider;
++    private volatile AuthProvider tertiaryProvider;
+ 
+-    private Set<String> primaryOverrides = new HashSet<String>();
+-    private Set<String> secondaryOverrides = new HashSet<String>();
+-    private Set<String> tertiaryOverrides = new HashSet<String>();
++    private volatile Set<String> primaryOverrides = new HashSet<String>();
++    private volatile Set<String> secondaryOverrides = new HashSet<String>();
++    private volatile Set<String> tertiaryOverrides = new HashSet<String>();
+ 
+     public HybridAuthProvider() {
+         // Convert XML based provider setup to Database based
+diff --git a/src/java/org/jivesoftware/openfire/filetransfer/proxy/FileTransferProxy.java b/src/java/org/jivesoftware/openfire/filetransfer/proxy/FileTransferProxy.java
+index 317810b..46f3415 100644
+--- a/src/java/org/jivesoftware/openfire/filetransfer/proxy/FileTransferProxy.java
++++ b/src/java/org/jivesoftware/openfire/filetransfer/proxy/FileTransferProxy.java
+@@ -94,12 +94,12 @@ public class FileTransferProxy extends BasicModule
+      */
+     public static final int DEFAULT_PORT = 7777;
+ 
+-    private String proxyServiceName;
++    private volatile String proxyServiceName;
+ 
+     private IQHandlerInfo info;
+     private RoutingTable routingTable;
+     private PacketRouter router;
+-    private String proxyIP;
++    private volatile String proxyIP;
+     private ProxyConnectionManager connectionManager;
+ 
+     private InetAddress bindInterface;
+diff --git a/src/java/org/jivesoftware/openfire/filetransfer/proxy/ProxyConnectionManager.java b/src/java/org/jivesoftware/openfire/filetransfer/proxy/ProxyConnectionManager.java
+index 441f9c9..194534c 100644
+--- a/src/java/org/jivesoftware/openfire/filetransfer/proxy/ProxyConnectionManager.java
++++ b/src/java/org/jivesoftware/openfire/filetransfer/proxy/ProxyConnectionManager.java
+@@ -79,7 +79,7 @@ public class ProxyConnectionManager {
+ 
+     private FileTransferManager transferManager;
+ 
+-    private String className;
++    private volatile String className;
+ 
+     public ProxyConnectionManager(FileTransferManager manager) {
+         String cacheName = "File Transfer";
+diff --git a/src/java/org/jivesoftware/openfire/group/GroupManager.java b/src/java/org/jivesoftware/openfire/group/GroupManager.java
+index e6b680b..0e87e6b 100644
+--- a/src/java/org/jivesoftware/openfire/group/GroupManager.java
++++ b/src/java/org/jivesoftware/openfire/group/GroupManager.java
+@@ -75,7 +75,7 @@ public class GroupManager {
+ 
+     private Cache<String, Group> groupCache;
+     private Cache<String, Object> groupMetaCache;
+-    private GroupProvider provider;
++    private volatile GroupProvider provider;
+ 
+     private GroupManager() {
+         // Initialize caches.
+diff --git a/src/java/org/jivesoftware/openfire/group/JDBCGroupProvider.java b/src/java/org/jivesoftware/openfire/group/JDBCGroupProvider.java
+index 3f7505e..f34a814 100644
+--- a/src/java/org/jivesoftware/openfire/group/JDBCGroupProvider.java
++++ b/src/java/org/jivesoftware/openfire/group/JDBCGroupProvider.java
+@@ -78,14 +78,14 @@ public class JDBCGroupProvider extends AbstractGroupProvider {
+ 
+ 	private static final Logger Log = LoggerFactory.getLogger(JDBCGroupProvider.class);
+ 
+-    private String connectionString;
++    private volatile String connectionString;
+ 
+-    private String groupCountSQL;
+-    private String descriptionSQL;
+-    private String allGroupsSQL;
+-    private String userGroupsSQL;
+-    private String loadMembersSQL;
+-    private String loadAdminsSQL;
++    private volatile String groupCountSQL;
++    private volatile String descriptionSQL;
++    private volatile String allGroupsSQL;
++    private volatile String userGroupsSQL;
++    private volatile String loadMembersSQL;
++    private volatile String loadAdminsSQL;
+     private boolean useConnectionProvider;
+ 
+     private XMPPServer server = XMPPServer.getInstance();  
+diff --git a/src/java/org/jivesoftware/openfire/lockout/LockOutManager.java b/src/java/org/jivesoftware/openfire/lockout/LockOutManager.java
+index 5e18d27..10bb321 100644
+--- a/src/java/org/jivesoftware/openfire/lockout/LockOutManager.java
++++ b/src/java/org/jivesoftware/openfire/lockout/LockOutManager.java
+@@ -78,7 +78,7 @@ public class LockOutManager {
+ 
+     /* Cache of locked out accounts */
+     private Cache<String,LockOutFlag> lockOutCache;
+-    private LockOutProvider provider;
++    private volatile LockOutProvider provider;
+ 
+     /**
+      * Constructs a LockOutManager, setting up it's cache, propery listener, and setting up the provider.
+diff --git a/src/java/org/jivesoftware/openfire/security/SecurityAuditManager.java b/src/java/org/jivesoftware/openfire/security/SecurityAuditManager.java
+index 4785bb9..9740312 100644
+--- a/src/java/org/jivesoftware/openfire/security/SecurityAuditManager.java
++++ b/src/java/org/jivesoftware/openfire/security/SecurityAuditManager.java
+@@ -74,7 +74,7 @@ public class SecurityAuditManager {
+         return SecurityAuditManagerContainer.instance;
+     }
+ 
+-    private SecurityAuditProvider provider;
++    private volatile SecurityAuditProvider provider;
+ 
+     /**
+      * Constructs a SecurityAuditManager, setting up the provider, and a listener.
+diff --git a/src/java/org/jivesoftware/openfire/user/HybridUserProvider.java b/src/java/org/jivesoftware/openfire/user/HybridUserProvider.java
+index e309328..f364616 100644
+--- a/src/java/org/jivesoftware/openfire/user/HybridUserProvider.java
++++ b/src/java/org/jivesoftware/openfire/user/HybridUserProvider.java
+@@ -47,7 +47,7 @@ public class HybridUserProvider implements UserProvider {
+ 
+ 	private static final Logger Log = LoggerFactory.getLogger(HybridUserProvider.class);
+ 	
+-    private List<UserProvider> userproviders = null;
++    private volatile List<UserProvider> userproviders = null;
+ 
+     public HybridUserProvider() {
+ 
+diff --git a/src/java/org/jivesoftware/openfire/user/JDBCUserProvider.java b/src/java/org/jivesoftware/openfire/user/JDBCUserProvider.java
+index 3a37c89..3ca1fb0 100644
+--- a/src/java/org/jivesoftware/openfire/user/JDBCUserProvider.java
++++ b/src/java/org/jivesoftware/openfire/user/JDBCUserProvider.java
+@@ -86,12 +86,12 @@ public class JDBCUserProvider implements UserProvider {
+ 
+ 	private static final Logger Log = LoggerFactory.getLogger(JDBCUserProvider.class);
+ 
+-	private String connectionString;
++	private volatile String connectionString;
+ 
+-	private String loadUserSQL;
+-	private String userCountSQL;
+-	private String allUsersSQL;
+-	private String searchSQL;
++	private volatile String loadUserSQL;
++	private volatile String userCountSQL;
++	private volatile String allUsersSQL;
++	private volatile String searchSQL;
+ 	private String usernameField;
+ 	private String nameField;
+ 	private String emailField;
+diff --git a/src/java/org/jivesoftware/openfire/user/UserManager.java b/src/java/org/jivesoftware/openfire/user/UserManager.java
+index feb0c24..8888c2e 100644
+--- a/src/java/org/jivesoftware/openfire/user/UserManager.java
++++ b/src/java/org/jivesoftware/openfire/user/UserManager.java
+@@ -89,7 +89,7 @@ public class UserManager implements IQResultListener {
+     private Cache<String, User> userCache;
+     /** Cache if a local or remote user exists. */
+     private Cache<String, Boolean> remoteUsersCache;
+-    private UserProvider provider;
++    private volatile UserProvider provider;
+ 
+     private UserManager() {
+         // Initialize caches.

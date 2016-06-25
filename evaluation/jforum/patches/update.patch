@@ -1,0 +1,32 @@
+diff --git a/src/net/jforum/util/SafeHtml.java b/src/net/jforum/util/SafeHtml.java
+index 9bdf749..19191e8 100644
+--- a/src/net/jforum/util/SafeHtml.java
++++ b/src/net/jforum/util/SafeHtml.java
+@@ -76,9 +76,9 @@ import edu.washington.cse.instrumentation.runtime.containers.StaccatoSet;
+  */
+ public class SafeHtml 
+ {
+-	private static Set welcomeTags;
+-	private static Set welcomeAttributes;
+-	private static Set allowedProtocols;
++	private volatile static Set welcomeTags;
++	private volatile static Set welcomeAttributes;
++	private volatile static Set allowedProtocols;
+ 	
+ 	static {
+ 		welcomeTags = new HashSet();
+@@ -90,6 +90,14 @@ public class SafeHtml
+ 		allowedProtocols = splitAndTrim(SystemGlobals.getValue(ConfigKeys.HTML_LINKS_ALLOW_PROTOCOLS));
+ 	}
+ 	
++	public static Object __staccato_update_field_static(Set failingProps, String fieldName, Object oldObj, RuntimeException e) {
++		if(fieldName.equals("welcomeTags")) {
++			return welcomeTags = splitAndTrim(ConfigKeys.HTML_TAGS_WELCOME); 
++		} else {
++			throw e;
++		}
++	}
++	
+ 	@StaccatoPropagate(PropagationTarget.RETURN)
+ 	private static Set splitAndTrim(String s)
+ 	{

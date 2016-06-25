@@ -1,0 +1,2 @@
+#include string.rules
++org.apache.lucene.analysis.Analyzer

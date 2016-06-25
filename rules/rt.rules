@@ -1,0 +1,5 @@
+#include string.rules
+#include jdbc.rules
+#include naming.rules
+#include text.rules
+#include locale.rules

@@ -1,0 +1,10 @@
++edu.washington.cse.instrumentation.runtime.containers.StaccatoList
++edu.washington.cse.instrumentation.runtime.containers.StaccatoSet
++edu.washington.cse.instrumentation.runtime.containers.StaccatoMap
+-java.lang.Float
+-java.lang.Integer
+-java.lang.Double
+-java.lang.Long
+//<edu.washington.cse.instrumentation.runtime.StaccatoRuntime,java.lang.Byte>
+//<edu.washington.cse.instrumentation.runtime.StaccatoRuntime,java.lang.Short>
+//<edu.washington.cse.instrumentation.runtime.StaccatoRuntime,java.lang.Boolean>

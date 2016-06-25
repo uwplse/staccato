@@ -1,0 +1,409 @@
+diff --git a/src/main/java/net/sourceforge/subsonic/controller/AdvancedSettingsController.java b/src/main/java/net/sourceforge/subsonic/controller/AdvancedSettingsController.java
+index 4054a35..bbbdd2d 100644
+--- a/src/main/java/net/sourceforge/subsonic/controller/AdvancedSettingsController.java
++++ b/src/main/java/net/sourceforge/subsonic/controller/AdvancedSettingsController.java
+@@ -70,7 +70,8 @@ public class AdvancedSettingsController extends SimpleFormController {
+         try {
+             settingsService.setStreamPort(Integer.parseInt(command.getStreamPort()));
+         } catch (NumberFormatException x) { /* Intentionally ignored. */ }
+-
++        settingsService.startLdapUpdate();
++        try {
+ 	        settingsService.setLdapEnabled(command.isLdapEnabled());
+ 	        settingsService.setLdapUrl(command.getLdapUrl());
+ 	        settingsService.setLdapSearchFilter(command.getLdapSearchFilter());
+@@ -82,6 +83,10 @@ public class AdvancedSettingsController extends SimpleFormController {
+ 	        }
+ 	
+ 	        settingsService.save();
++        } finally {
++        	settingsService.endLdapUpdate();
++        }
++        
+     }
+ 
+     public void setSettingsService(SettingsService settingsService) {
+diff --git a/src/main/java/net/sourceforge/subsonic/service/SettingsService.java b/src/main/java/net/sourceforge/subsonic/service/SettingsService.java
+index c845b1c..f84be79 100644
+--- a/src/main/java/net/sourceforge/subsonic/service/SettingsService.java
++++ b/src/main/java/net/sourceforge/subsonic/service/SettingsService.java
+@@ -250,7 +250,8 @@ public class SettingsService {
+             FileInputStream in = null;
+             try {
+                 in = new FileInputStream(propertyFile);
+-                properties.load(in);
++                TaintHelper.loadProperties(in, properties);
++//                properties.load(in);
+             } catch (Exception x) {
+                 LOG.error("Unable to read from property file.", x);
+             } finally {
+@@ -351,7 +352,7 @@ public class SettingsService {
+     }
+ 
+     private int getInt(String key, int defaultValue) {
+-        return Integer.valueOf(properties.getProperty(key, String.valueOf(defaultValue)));
++    	return Integer.valueOf(TaintHelper.getProp(key, properties, defaultValue + ""));
+     }
+ 
+     private void setInt(String key, int value) {
+@@ -359,7 +360,7 @@ public class SettingsService {
+     }
+ 
+     private long getLong(String key, long defaultValue) {
+-        return Long.valueOf(properties.getProperty(key, String.valueOf(defaultValue)));
++    	return Long.valueOf(TaintHelper.getProp(key, properties, defaultValue + ""));
+     }
+ 
+     private void setLong(String key, long value) {
+@@ -367,23 +368,24 @@ public class SettingsService {
+     }
+ 
+     private boolean getBoolean(String key, boolean defaultValue) {
+-        return Boolean.valueOf(properties.getProperty(key, String.valueOf(defaultValue)));
++    	return Boolean.valueOf(TaintHelper.getProp(key, properties, defaultValue + ""));
+     }
+ 
+     private void setBoolean(String key, boolean value) {
+-        setProperty(key, String.valueOf(value));
++        setProperty(key, String.valueOf(value) + "");
+     }
+ 
+     private String getString(String key, String defaultValue) {
+-        return properties.getProperty(key, defaultValue);
++    	return TaintHelper.getProp(key, properties, defaultValue);
+     }
+ 
+     private void setString(String key, String value) {
+-        setProperty(key, value);
++    	TaintHelper.casProp(key, value, properties);
++//        setProperty(key, value);
+     }
+ 
+     public String getIndexString() {
+-        return properties.getProperty(KEY_INDEX_STRING, DEFAULT_INDEX_STRING);
++        return TaintHelper.getProp(KEY_INDEX_STRING, properties, DEFAULT_INDEX_STRING);
+     }
+ 
+     public void setIndexString(String indexString) {
+@@ -391,7 +393,7 @@ public class SettingsService {
+     }
+ 
+     public String getIgnoredArticles() {
+-        return properties.getProperty(KEY_IGNORED_ARTICLES, DEFAULT_IGNORED_ARTICLES);
++        return TaintHelper.getProp(KEY_IGNORED_ARTICLES, properties, DEFAULT_IGNORED_ARTICLES);
+     }
+ 
+     public String[] getIgnoredArticlesAsArray() {
+@@ -403,7 +405,7 @@ public class SettingsService {
+     }
+ 
+     public String getShortcuts() {
+-        return properties.getProperty(KEY_SHORTCUTS, DEFAULT_SHORTCUTS);
++        return TaintHelper.getProp(KEY_SHORTCUTS, properties, DEFAULT_SHORTCUTS);
+     }
+ 
+     public String[] getShortcutsAsArray() {
+@@ -415,7 +417,7 @@ public class SettingsService {
+     }
+ 
+     public String getPlaylistFolder() {
+-        return properties.getProperty(KEY_PLAYLIST_FOLDER, DEFAULT_PLAYLIST_FOLDER);
++        return TaintHelper.getProp(KEY_PLAYLIST_FOLDER, properties, DEFAULT_PLAYLIST_FOLDER);
+     }
+ 
+     public void setPlaylistFolder(String playlistFolder) {
+@@ -423,7 +425,7 @@ public class SettingsService {
+     }
+ 
+     public String getMusicFileTypes() {
+-        return properties.getProperty(KEY_MUSIC_FILE_TYPES, DEFAULT_MUSIC_FILE_TYPES);
++        return TaintHelper.getProp(KEY_MUSIC_FILE_TYPES, properties, DEFAULT_MUSIC_FILE_TYPES);
+     }
+ 
+     public synchronized void setMusicFileTypes(String fileTypes) {
+@@ -431,15 +433,15 @@ public class SettingsService {
+         cachedMusicFileTypesArray = null;
+     }
+ 
+-    public synchronized String[] getMusicFileTypesAsArray() {
++    public synchronized List<String> getMusicFileTypesAsArray() {
+         if (cachedMusicFileTypesArray == null) {
+-            cachedMusicFileTypesArray = toStringArray(getMusicFileTypes());
++            cachedMusicFileTypesArray = toStringList(getMusicFileTypes());
+         }
+         return cachedMusicFileTypesArray;
+     }
+ 
+     public String getVideoFileTypes() {
+-        return properties.getProperty(KEY_VIDEO_FILE_TYPES, DEFAULT_VIDEO_FILE_TYPES);
++        return TaintHelper.getProp(KEY_VIDEO_FILE_TYPES, properties, DEFAULT_VIDEO_FILE_TYPES);
+     }
+ 
+     public synchronized void setVideoFileTypes(String fileTypes) {
+@@ -447,15 +449,15 @@ public class SettingsService {
+         cachedVideoFileTypesArray = null;
+     }
+ 
+-    public synchronized String[] getVideoFileTypesAsArray() {
++    public synchronized List<String> getVideoFileTypesAsArray() {
+         if (cachedVideoFileTypesArray == null) {
+-            cachedVideoFileTypesArray = toStringArray(getVideoFileTypes());
++            cachedVideoFileTypesArray = toStringList(getVideoFileTypes());
+         }
+         return cachedVideoFileTypesArray;
+     }
+ 
+     public String getCoverArtFileTypes() {
+-        return properties.getProperty(KEY_COVER_ART_FILE_TYPES, DEFAULT_COVER_ART_FILE_TYPES);
++        return TaintHelper.getProp(KEY_COVER_ART_FILE_TYPES, properties, DEFAULT_COVER_ART_FILE_TYPES);
+     }
+ 
+     public synchronized void setCoverArtFileTypes(String fileTypes) {
+@@ -479,7 +481,7 @@ public class SettingsService {
+     }
+ 
+     public String getWelcomeTitle() {
+-        return StringUtils.trimToNull(properties.getProperty(KEY_WELCOME_TITLE, DEFAULT_WELCOME_TITLE));
++        return StringUtils.trimToNull(TaintHelper.getProp(KEY_WELCOME_TITLE, properties, DEFAULT_WELCOME_TITLE));
+     }
+ 
+     public void setWelcomeTitle(String title) {
+@@ -487,7 +489,7 @@ public class SettingsService {
+     }
+ 
+     public String getWelcomeSubtitle() {
+-        return StringUtils.trimToNull(properties.getProperty(KEY_WELCOME_SUBTITLE, DEFAULT_WELCOME_SUBTITLE));
++        return StringUtils.trimToNull(TaintHelper.getProp(KEY_WELCOME_SUBTITLE, properties, DEFAULT_WELCOME_SUBTITLE));
+     }
+ 
+     public void setWelcomeSubtitle(String subtitle) {
+@@ -495,7 +497,7 @@ public class SettingsService {
+     }
+ 
+     public String getWelcomeMessage() {
+-        return StringUtils.trimToNull(properties.getProperty(KEY_WELCOME_MESSAGE, DEFAULT_WELCOME_MESSAGE));
++        return StringUtils.trimToNull(TaintHelper.getProp(KEY_WELCOME_MESSAGE, properties, DEFAULT_WELCOME_MESSAGE));
+     }
+ 
+     public void setWelcomeMessage(String message) {
+@@ -503,7 +505,7 @@ public class SettingsService {
+     }
+ 
+     public String getLoginMessage() {
+-        return StringUtils.trimToNull(properties.getProperty(KEY_LOGIN_MESSAGE, DEFAULT_LOGIN_MESSAGE));
++        return StringUtils.trimToNull(TaintHelper.getProp(KEY_LOGIN_MESSAGE, properties, DEFAULT_LOGIN_MESSAGE));
+     }
+ 
+     public void setLoginMessage(String message) {
+@@ -596,7 +598,7 @@ public class SettingsService {
+      * Returns the Podcast download folder.
+      */
+     public String getPodcastFolder() {
+-        return properties.getProperty(KEY_PODCAST_FOLDER, DEFAULT_PODCAST_FOLDER);
++        return TaintHelper.getProp(KEY_PODCAST_FOLDER, properties, DEFAULT_PODCAST_FOLDER);
+     }
+ 
+     /**
+@@ -610,7 +612,7 @@ public class SettingsService {
+      * @return The download bitrate limit in Kbit/s. Zero if unlimited.
+      */
+     public long getDownloadBitrateLimit() {
+-        return Long.parseLong(properties.getProperty(KEY_DOWNLOAD_BITRATE_LIMIT, "" + DEFAULT_DOWNLOAD_BITRATE_LIMIT));
++    	return getLong(KEY_DOWNLOAD_BITRATE_LIMIT, DEFAULT_DOWNLOAD_BITRATE_LIMIT);
+     }
+ 
+     /**
+@@ -650,7 +652,7 @@ public class SettingsService {
+ 
+     public String getLicenseEmail() {
+     	return "a@a.com";
+-        //return properties.getProperty(KEY_LICENSE_EMAIL, DEFAULT_LICENSE_EMAIL);
++        //return TaintHelper.getProp(KEY_LICENSE_EMAIL, properties, DEFAULT_LICENSE_EMAIL);
+     }
+ 
+     public void setLicenseEmail(String email) {
+@@ -658,7 +660,7 @@ public class SettingsService {
+     }
+ 
+     public String getLicenseCode() {
+-        return properties.getProperty(KEY_LICENSE_CODE, DEFAULT_LICENSE_CODE);
++        return TaintHelper.getProp(KEY_LICENSE_CODE, properties, DEFAULT_LICENSE_CODE);
+     }
+ 
+     public void setLicenseCode(String code) {
+@@ -666,7 +668,7 @@ public class SettingsService {
+     }
+ 
+     public Date getLicenseDate() {
+-        String value = properties.getProperty(KEY_LICENSE_DATE, DEFAULT_LICENSE_DATE);
++        String value = TaintHelper.getProp(KEY_LICENSE_DATE, properties, DEFAULT_LICENSE_DATE);
+         return value == null ? null : new Date(Long.parseLong(value));
+     }
+ 
+@@ -697,7 +699,7 @@ public class SettingsService {
+     }
+ 
+     public String getDownsamplingCommand() {
+-        return properties.getProperty(KEY_DOWNSAMPLING_COMMAND, DEFAULT_DOWNSAMPLING_COMMAND);
++        return TaintHelper.getProp(KEY_DOWNSAMPLING_COMMAND, properties, DEFAULT_DOWNSAMPLING_COMMAND);
+     }
+ 
+     public void setDownsamplingCommand(String command) {
+@@ -705,7 +707,7 @@ public class SettingsService {
+     }
+ 
+     public String getHlsCommand() {
+-        return properties.getProperty(KEY_HLS_COMMAND, DEFAULT_HLS_COMMAND);
++        return TaintHelper.getProp(KEY_HLS_COMMAND, properties, DEFAULT_HLS_COMMAND);
+     }
+ 
+     public void setHlsCommand(String command) {
+@@ -713,10 +715,10 @@ public class SettingsService {
+     }
+ 
+     public String getJukeboxCommand() {
+-        return properties.getProperty(KEY_JUKEBOX_COMMAND, DEFAULT_JUKEBOX_COMMAND);
++        return TaintHelper.getProp(KEY_JUKEBOX_COMMAND, properties, DEFAULT_JUKEBOX_COMMAND);
+     }
+     public String getVideoImageCommand() {
+-        return properties.getProperty(KEY_VIDEO_IMAGE_COMMAND, DEFAULT_VIDEO_IMAGE_COMMAND);
++        return TaintHelper.getProp(KEY_VIDEO_IMAGE_COMMAND, properties, DEFAULT_VIDEO_IMAGE_COMMAND);
+     }
+ 
+     public boolean isRewriteUrlEnabled() {
+@@ -736,31 +738,32 @@ public class SettingsService {
+     }
+ 
+     public String getLdapUrl() {
+-        return properties.getProperty(KEY_LDAP_URL, DEFAULT_LDAP_URL);
++        String toRet = TaintHelper.getProp(KEY_LDAP_URL, properties, DEFAULT_LDAP_URL);
++        return toRet;
+     }
+ 
+     public void setLdapUrl(String ldapUrl) {
+-        properties.setProperty(KEY_LDAP_URL, ldapUrl);
++    	TaintHelper.casProp(KEY_LDAP_URL, ldapUrl, properties);
+     }
+ 
+     public String getLdapSearchFilter() {
+-        return properties.getProperty(KEY_LDAP_SEARCH_FILTER, DEFAULT_LDAP_SEARCH_FILTER);
++        return TaintHelper.getProp(KEY_LDAP_SEARCH_FILTER, properties, DEFAULT_LDAP_SEARCH_FILTER);
+     }
+ 
+     public void setLdapSearchFilter(String ldapSearchFilter) {
+-        properties.setProperty(KEY_LDAP_SEARCH_FILTER, ldapSearchFilter);
++        TaintHelper.casProp(KEY_LDAP_SEARCH_FILTER, ldapSearchFilter, properties);
+     }
+ 
+     public String getLdapManagerDn() {
+-        return properties.getProperty(KEY_LDAP_MANAGER_DN, DEFAULT_LDAP_MANAGER_DN);
++        return TaintHelper.getProp(KEY_LDAP_MANAGER_DN, properties, DEFAULT_LDAP_MANAGER_DN);
+     }
+ 
+     public void setLdapManagerDn(String ldapManagerDn) {
+-        properties.setProperty(KEY_LDAP_MANAGER_DN, ldapManagerDn);
++        TaintHelper.casProp(KEY_LDAP_MANAGER_DN, ldapManagerDn, properties);
+     }
+ 
+     public String getLdapManagerPassword() {
+-        String s = properties.getProperty(KEY_LDAP_MANAGER_PASSWORD, DEFAULT_LDAP_MANAGER_PASSWORD);
++        String s = TaintHelper.getProp(KEY_LDAP_MANAGER_PASSWORD, properties, DEFAULT_LDAP_MANAGER_PASSWORD);
+         try {
+             return StringUtil.utf8HexDecode(s);
+         } catch (Exception x) {
+@@ -775,7 +778,7 @@ public class SettingsService {
+         } catch (Exception x) {
+             LOG.warn("Failed to encode LDAP manager password.", x);
+         }
+-        properties.setProperty(KEY_LDAP_MANAGER_PASSWORD, ldapManagerPassword);
++        TaintHelper.casProp(KEY_LDAP_MANAGER_PASSWORD, ldapManagerPassword, properties);
+     }
+ 
+     public boolean isLdapAutoShadowing() {
+@@ -827,15 +830,15 @@ public class SettingsService {
+     }
+ 
+     public String getUrlRedirectFrom() {
+-        return properties.getProperty(KEY_URL_REDIRECT_FROM, DEFAULT_URL_REDIRECT_FROM);
++        return TaintHelper.getProp(KEY_URL_REDIRECT_FROM, properties, DEFAULT_URL_REDIRECT_FROM);
+     }
+ 
+     public void setUrlRedirectFrom(String urlRedirectFrom) {
+-        properties.setProperty(KEY_URL_REDIRECT_FROM, urlRedirectFrom);
++        TaintHelper.casProp(KEY_URL_REDIRECT_FROM, urlRedirectFrom, properties);
+     }
+ 
+     public Date getTrialExpires() {
+-        String value = properties.getProperty(KEY_TRIAL_EXPIRES, DEFAULT_TRIAL_EXPIRES);
++        String value = TaintHelper.getProp(KEY_TRIAL_EXPIRES, properties, DEFAULT_TRIAL_EXPIRES);
+         return value == null ? null : new Date(Long.parseLong(value));
+     }
+ 
+@@ -845,19 +848,19 @@ public class SettingsService {
+     }
+ 
+     public String getUrlRedirectContextPath() {
+-        return properties.getProperty(KEY_URL_REDIRECT_CONTEXT_PATH, DEFAULT_URL_REDIRECT_CONTEXT_PATH);
++        return TaintHelper.getProp(KEY_URL_REDIRECT_CONTEXT_PATH, properties, DEFAULT_URL_REDIRECT_CONTEXT_PATH);
+     }
+ 
+     public void setUrlRedirectContextPath(String contextPath) {
+-        properties.setProperty(KEY_URL_REDIRECT_CONTEXT_PATH, contextPath);
++        TaintHelper.casProp(KEY_URL_REDIRECT_CONTEXT_PATH, contextPath, properties);
+     }
+ 
+     public String getServerId() {
+-        return properties.getProperty(KEY_SERVER_ID, DEFAULT_SERVER_ID);
++        return TaintHelper.getProp(KEY_SERVER_ID, properties, DEFAULT_SERVER_ID);
+     }
+ 
+     public void setServerId(String serverId) {
+-        properties.setProperty(KEY_SERVER_ID, serverId);
++        TaintHelper.casProp(KEY_SERVER_ID, serverId, properties);
+     }
+ 
+     public long getSettingsChanged() {
+@@ -907,9 +910,9 @@ public class SettingsService {
+      * @return The locale.
+      */
+     public Locale getLocale() {
+-        String language = properties.getProperty(KEY_LOCALE_LANGUAGE, DEFAULT_LOCALE_LANGUAGE);
+-        String country = properties.getProperty(KEY_LOCALE_COUNTRY, DEFAULT_LOCALE_COUNTRY);
+-        String variant = properties.getProperty(KEY_LOCALE_VARIANT, DEFAULT_LOCALE_VARIANT);
++        String language = TaintHelper.getProp(KEY_LOCALE_LANGUAGE, properties, DEFAULT_LOCALE_LANGUAGE);
++        String country = TaintHelper.getProp(KEY_LOCALE_COUNTRY, properties, DEFAULT_LOCALE_COUNTRY);
++        String variant = TaintHelper.getProp(KEY_LOCALE_VARIANT, properties, DEFAULT_LOCALE_VARIANT);
+ 
+         return new Locale(language, country, variant);
+     }
+@@ -931,7 +934,7 @@ public class SettingsService {
+      * @return The theme ID.
+      */
+     public String getThemeId() {
+-        return properties.getProperty(KEY_THEME_ID, DEFAULT_THEME_ID);
++        return TaintHelper.getProp(KEY_THEME_ID, properties, DEFAULT_THEME_ID);
+     }
+ 
+     /**
+@@ -1362,11 +1365,19 @@ public class SettingsService {
+         return localIpAddress;
+     }
+     
++    public void startLdapUpdate() {
++    	TaintHelper.startUpdate(KEY_LDAP_MANAGER_DN, KEY_LDAP_MANAGER_PASSWORD, KEY_LDAP_SEARCH_FILTER, KEY_LDAP_URL);
++    }
++    
++    public void endLdapUpdate() {
++    	TaintHelper.endUpdate(KEY_LDAP_MANAGER_DN, KEY_LDAP_MANAGER_PASSWORD, KEY_LDAP_SEARCH_FILTER, KEY_LDAP_URL);
++    }
++
+     private void setProperty(String key, String value) {
+         if (value == null) {
+-            properties.remove(key);
++        	TaintHelper.deleteProp(key, properties);
+         } else {
+-            properties.setProperty(key, value);
++        	TaintHelper.casProp(key, value, properties);
+         }
+     }
+ 

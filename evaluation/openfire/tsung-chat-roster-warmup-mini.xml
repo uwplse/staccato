@@ -1,0 +1,106 @@
+<?xml version="1.0"?>
+<!DOCTYPE tsung SYSTEM "/usr/share/tsung/tsung-1.0.dtd" [] >
+<tsung loglevel="info">
+  <clients>
+	<client host="localhost" cpu="3"/>
+  </clients>
+  <servers>
+	<server host="localhost" port="5222" type="tcp"></server>
+  </servers>
+  <load duration="1" unit="minute">
+	
+	<arrivalphase phase="1" duration="5" unit="second">
+<!--	<arrivalphase phase="1" duration="1" unit="second">-->
+      <users interarrival="1" unit="second"></users>
+	</arrivalphase>
+  </load>
+  <options>
+	<option type="ts_jabber" name="userid_max" value="10000"/>
+	<option type="ts_jabber" name="username" value="testuser"/>
+	<option type="ts_jabber" name="passwd" value="testpassword"/>
+	<option name="file_server" value="/tmp/ofhosts.csv" id="domainfile"/>
+	<option type="ts_jabber" name="vhost_file" value="domainfile"/>
+	<option name="seed" value="3043"/>
+  </options>
+  <sessions>
+	<session probability="70" name="jabber-test-chat" type="ts_jabber" bidi="true">
+	  <transaction name="chat_connect">
+		<request> <jabber type="connect" ack="local" /> </request>
+	  </transaction>
+	  
+      <thinktime value="2" random="false"></thinktime>
+
+      <transaction name="authenticate">
+		<request> <jabber type="auth_get" ack="local"></jabber> </request>
+		<request> <jabber type="auth_set_plain" ack="local"></jabber> </request>
+      </transaction>
+
+
+      <request> <jabber type="presence:initial" ack="no_ack"/> </request>
+	  
+      <thinktime value="5" random="false"></thinktime>
+	  
+      <transaction name="online">
+		<request> <jabber type="chat" ack="no_ack" size="16" destination="online"/></request>
+		<request> <jabber type="chat" ack="no_ack" size="16" destination="online"/></request>
+		<request> <jabber type="chat" ack="no_ack" size="16" destination="online"/></request>
+		<request> <jabber type="chat" ack="no_ack" size="16" destination="online"/></request>
+      </transaction>
+
+      <thinktime value="5" random="false"></thinktime>
+
+      <transaction name="chatburst">
+		<request> <jabber type="chat" ack="no_ack" size="16" destination="online"/></request>
+		<request> <jabber type="chat" ack="no_ack" size="16" destination="online"/></request>
+		<request> <jabber type="chat" ack="no_ack" size="16" destination="online"/></request>
+		<request> <jabber type="chat" ack="no_ack" size="16" destination="online"/></request>
+      </transaction>
+
+      <thinktime value="1" random="false"></thinktime>
+
+      <transaction name="close">
+		<request> <jabber type="close" ack="local"> </jabber></request>
+      </transaction>
+	</session>
+	<session probability="30" name="jabber-test-roster" type="ts_jabber" bidi="true">
+	  <transaction name="roster_connect">
+      <request> <jabber type="connect" ack="local" /> </request>
+	  </transaction>
+	  
+      <thinktime value="2" random="false"></thinktime>
+
+      <transaction name="authenticate_roster">
+		<request> <jabber type="auth_get" ack="local"></jabber> </request>
+		<request> <jabber type="auth_set_plain" ack="local"></jabber> </request>
+      </transaction>
+
+      <request> <jabber type="presence:initial" ack="no_ack"/> </request>
+
+	  <thinktime value="1" random="false"></thinktime>
+
+	  <transaction name="rosteradd">
+		<request>
+		  <jabber type="iq:roster:add" ack="no_ack" destination="online"></jabber>
+		</request>
+		<request>
+		  <jabber type="presence:subscribe" ack="no_ack"/>
+		</request>
+	  </transaction>
+
+	  <thinktime value="1" random="false"></thinktime>
+	  <transaction name="rosterrename">
+		<request> <jabber type="iq:roster:rename" ack="no_ack"></jabber> </request>
+	  </transaction>
+
+	  <thinktime value="1" random="false"></thinktime>
+
+	  <transaction name="rosterdelete">
+		<request> <jabber type="iq:roster:remove" ack="no_ack"></jabber> </request>
+	  </transaction>
+
+      <transaction name="close_roster">
+		<request> <jabber type="close" ack="local"> </jabber></request>
+      </transaction>
+	</session>
+  </sessions>
+</tsung>

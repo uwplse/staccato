@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="2.7" jmeter="2.12.20150413">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Test Plan" enabled="true">
+      <stringProp name="TestPlan.comments"></stringProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+        <collectionProp name="Arguments.arguments"/>
+      </elementProp>
+      <stringProp name="TestPlan.user_define_classpath"></stringProp>
+    </TestPlan>
+    <hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">250</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">5</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+        <longProp name="ThreadGroup.start_time">1448338375000</longProp>
+        <longProp name="ThreadGroup.end_time">1448338375000</longProp>
+        <boolProp name="ThreadGroup.scheduler">false</boolProp>
+        <stringProp name="ThreadGroup.duration"></stringProp>
+        <stringProp name="ThreadGroup.delay"></stringProp>
+      </ThreadGroup>
+      <hashTree>
+        <RunTime guiclass="RunTimeGui" testclass="RunTime" testname="Runtime Controller" enabled="true">
+          <stringProp name="RunTime.seconds">1</stringProp>
+        </RunTime>
+        <hashTree>
+          <ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="HTTP Request Defaults" enabled="true">
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+            <stringProp name="HTTPSampler.domain">localhost</stringProp>
+            <stringProp name="HTTPSampler.port">8080</stringProp>
+            <stringProp name="HTTPSampler.connect_timeout"></stringProp>
+            <stringProp name="HTTPSampler.response_timeout"></stringProp>
+            <stringProp name="HTTPSampler.protocol"></stringProp>
+            <stringProp name="HTTPSampler.contentEncoding"></stringProp>
+            <stringProp name="HTTPSampler.path"></stringProp>
+            <stringProp name="HTTPSampler.concurrentPool">4</stringProp>
+          </ConfigTestElement>
+          <hashTree/>
+          <OnceOnlyController guiclass="OnceOnlyControllerGui" testclass="OnceOnlyController" testname="Once Only Controller" enabled="true"/>
+          <hashTree>
+            <BeanShellPreProcessor guiclass="TestBeanGUI" testclass="BeanShellPreProcessor" testname="BeanShell PreProcessor" enabled="true">
+              <boolProp name="resetInterpreter">false</boolProp>
+              <stringProp name="parameters"></stringProp>
+              <stringProp name="filename"></stringProp>
+              <stringProp name="script">ctx.getVariables().putObject(&quot;staccato.rand&quot;, new Random(ctx.getThread().getThreadNum()));
+ctx.getVariables().putObject(&quot;staccato.group1&quot;, new String[]{&quot;cn=admin,dc=nodomain&quot;, &quot;cn=root,dc=nodomain&quot;, &quot;cn=admin,dc=nodomain&quot;});
+ctx.getVariables().putObject(&quot;staccato.group2&quot;, new String[]{&quot;foobar&quot;, &quot;fizzbizz&quot;, &quot;foobar&quot;});
+ctx.getVariables().putObject(&quot;staccato.group3&quot;, new String[]{&quot;ldap://localhost:389/dc=nodomain&quot;, &quot;ldap://localhost:389/ou=Users,dc=nodomain&quot;, &quot;ldap://localhost:389/ou=Users,dc=nodomain&quot;});
+ctx.getVariables().putObject(&quot;staccato.group5&quot;, new String[]{&quot;0&quot;, &quot;100&quot;, &quot;1024&quot;});
+ctx.getVariables().putObject(&quot;staccato.group6&quot;, new String[]{&quot;0&quot;, &quot;100&quot;, &quot;1024&quot;});
+ctx.getVariables().putObject(&quot;staccato.group4&quot;, new String[]{&quot;(uid={0})&quot;, &quot;(&amp;(objectClass=account)(uid={0}))&quot;, &quot;(&amp;(objectClass=account)(uid={0}))&quot;});
+ctx.getVariables().putObject(&quot;staccato.group7&quot;, new String[]{&quot;10111&quot;, &quot;10112&quot;});
+ctx.getVariables().putObject(&quot;staccato.group8&quot;, new String[]{&quot;0&quot;, &quot;50&quot;, &quot;100&quot;});
+ctx.getVariables().putObject(&quot;staccato.group9&quot;, new String[]{&quot;A B C D E F G H I J K L M N O P Q R S T U V W X-Z(XYZ)&quot;, &quot;A B C D E F G H I J K L M N O P Q R S T U V W X Y Z&quot;});
+ctx.getVariables().putObject(&quot;staccato.group10&quot;, new String[]{&quot;The El La Los Las Le Les&quot;, &quot;The El La Los Las Le A&quot;});
+ctx.getVariables().putObject(&quot;staccato.group16&quot;, new String[]{&quot;cover.jpg folder.jpg jpg jpeg gif png&quot;, &quot;cover.jpg folder.jpg&quot;});
+ctx.getVariables().putObject(&quot;staccato.group11&quot;, new String[]{&quot;New Incoming Podcast&quot;, &quot;New Incoming Podcast Whatever&quot;});
+ctx.getVariables().putObject(&quot;staccato.group15&quot;, new String[]{&quot;mp3 ogg oga aac m4a flac wav wma aif aiff ape mpc shn&quot;, &quot;mp3 ogg oga aac m4a flac wav wma aif aiff&quot;});
+ctx.getVariables().putObject(&quot;staccato.group12&quot;, new String[]{&quot;/var/playlists&quot;, &quot;/var/playlists2&quot;});
+ctx.getVariables().putObject(&quot;staccato.group22&quot;, new String[]{&quot;0&quot;, &quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;, &quot;7&quot;, &quot;8&quot;, &quot;9&quot;, &quot;10&quot;, &quot;11&quot;, &quot;12&quot;, &quot;13&quot;, &quot;14&quot;, &quot;15&quot;, &quot;16&quot;, &quot;17&quot;, &quot;18&quot;, &quot;19&quot;, &quot;20&quot;, &quot;21&quot;, &quot;22&quot;, &quot;23&quot;, &quot;24&quot;, &quot;25&quot;, &quot;26&quot;, &quot;27&quot;});
+ctx.getVariables().putObject(&quot;staccato.group23&quot;, new String[]{&quot;0&quot;, &quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;, &quot;7&quot;, &quot;8&quot;, &quot;9&quot;, &quot;10&quot;, &quot;11&quot;, &quot;12&quot;, &quot;13&quot;, &quot;14&quot;, &quot;15&quot;, &quot;16&quot;, &quot;17&quot;, &quot;18&quot;, &quot;19&quot;, &quot;20&quot;, &quot;21&quot;, &quot;22&quot;, &quot;23&quot;, &quot;24&quot;, &quot;25&quot;, &quot;26&quot;});
+ctx.getVariables().putObject(&quot;staccato.group13&quot;, new String[]{&quot;erzkgstagp&quot;, &quot;ygkkbhohpx&quot;, &quot;ahvipntdgm&quot;});
+ctx.getVariables().putObject(&quot;staccato.group14&quot;, new String[]{&quot;flv avi mpg mpeg mp4 m4v mkv mov wmv ogv divx m2ts&quot;, &quot;flv avi mpg mpeg mp4 m4v mkv mov wmv&quot;});
+ctx.getVariables().putObject(&quot;staccato.group18&quot;, new String[]{&quot;wprocldkzw&quot;, &quot;mgpxxlbanc&quot;, &quot;qdmlbehaga&quot;});
+ctx.getVariables().putObject(&quot;staccato.group17&quot;, new String[]{&quot;fknmozomrb&quot;, &quot;uvkigacznn&quot;, &quot;itpweqqljm&quot;});
+ctx.getVariables().putObject(&quot;staccato.group19&quot;, new String[]{&quot;zuqxwsjlnu&quot;, &quot;fyzzhbdfqg&quot;, &quot;guclpmcoiw&quot;});
+ctx.getVariables().putObject(&quot;staccato.group25&quot;, new String[]{&quot;-1&quot;, &quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;7&quot;, &quot;14&quot;, &quot;30&quot;, &quot;60&quot;});
+ctx.getVariables().putObject(&quot;staccato.group24&quot;, new String[]{&quot;0&quot;, &quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;, &quot;5&quot;, &quot;6&quot;, &quot;7&quot;, &quot;8&quot;, &quot;9&quot;, &quot;10&quot;, &quot;11&quot;, &quot;12&quot;, &quot;13&quot;, &quot;14&quot;, &quot;15&quot;, &quot;16&quot;, &quot;17&quot;, &quot;18&quot;, &quot;19&quot;, &quot;20&quot;, &quot;21&quot;, &quot;22&quot;, &quot;23&quot;});
+ctx.getVariables().putObject(&quot;staccato.group21&quot;, new String[]{&quot;giynazkppl&quot;, &quot;upxlyqmcbv&quot;, &quot;fvbxwkkket&quot;});
+ctx.getVariables().putObject(&quot;staccato.group26&quot;, new String[]{&quot;-1&quot;, &quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;, &quot;5&quot;, &quot;10&quot;, &quot;0&quot;});
+ctx.getVariables().putObject(&quot;staccato.group27&quot;, new String[]{&quot;-1&quot;, &quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;, &quot;5&quot;, &quot;10&quot;, &quot;20&quot;, &quot;30&quot;, &quot;50&quot;});
+ctx.getVariables().putObject(&quot;staccato.group20&quot;, new String[]{&quot;/var/music/Podcast&quot;, &quot;/var/music/Podcasts&quot;});
+ctx.getVariables().putObject(&quot;staccato.group28&quot;, new String[]{&quot;-1&quot;, &quot;1&quot;, &quot;24&quot;, &quot;168&quot;});
+</stringProp>
+            </BeanShellPreProcessor>
+            <hashTree/>
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="login request" enabled="true">
+              <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+                <collectionProp name="Arguments.arguments">
+                  <elementProp name="j_username" elementType="HTTPArgument">
+                    <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                    <stringProp name="Argument.value">admin</stringProp>
+                    <stringProp name="Argument.metadata">=</stringProp>
+                    <boolProp name="HTTPArgument.use_equals">true</boolProp>
+                    <stringProp name="Argument.name">j_username</stringProp>
+                  </elementProp>
+                  <elementProp name="j_password" elementType="HTTPArgument">
+                    <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                    <stringProp name="Argument.value">password</stringProp>
+                    <stringProp name="Argument.metadata">=</stringProp>
+                    <boolProp name="HTTPArgument.use_equals">true</boolProp>
+                    <stringProp name="Argument.name">j_password</stringProp>
+                  </elementProp>
+                </collectionProp>
+              </elementProp>
+              <stringProp name="HTTPSampler.domain"></stringProp>
+              <stringProp name="HTTPSampler.port"></stringProp>
+              <stringProp name="HTTPSampler.connect_timeout"></stringProp>
+              <stringProp name="HTTPSampler.response_timeout"></stringProp>
+              <stringProp name="HTTPSampler.protocol"></stringProp>
+              <stringProp name="HTTPSampler.contentEncoding"></stringProp>
+              <stringProp name="HTTPSampler.path">/subsonic/j_acegi_security_check</stringProp>
+              <stringProp name="HTTPSampler.method">POST</stringProp>
+              <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
+              <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+              <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+              <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+              <boolProp name="HTTPSampler.monitor">false</boolProp>
+              <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
+            </HTTPSamplerProxy>
+            <hashTree/>
+          </hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="havoc request" enabled="true">
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+            <stringProp name="HTTPSampler.domain"></stringProp>
+            <stringProp name="HTTPSampler.port"></stringProp>
+            <stringProp name="HTTPSampler.connect_timeout"></stringProp>
+            <stringProp name="HTTPSampler.response_timeout"></stringProp>
+            <stringProp name="HTTPSampler.protocol"></stringProp>
+            <stringProp name="HTTPSampler.contentEncoding"></stringProp>
+            <stringProp name="HTTPSampler.path"></stringProp>
+            <stringProp name="HTTPSampler.method">POST</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
+            <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+            <boolProp name="HTTPSampler.monitor">false</boolProp>
+            <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <BeanShellPreProcessor guiclass="TestBeanGUI" testclass="BeanShellPreProcessor" testname="BeanShell PreProcessor" enabled="true">
+              <boolProp name="resetInterpreter">false</boolProp>
+              <stringProp name="parameters"></stringProp>
+              <stringProp name="filename"></stringProp>
+              <stringProp name="script">Random r = ctx.getVariables().getObject(&quot;staccato.rand&quot;);
+int controller_id = r.nextInt(4);
+if(controller_id == 0) {
+	sampler.setPath(&quot;/subsonic/advancedSettings.view&quot;);
+	sampler.addArgument(&quot;_ldapEnabled&quot;, &quot;on&quot;);
+	int tmp_ind_0 = r.nextInt(3);
+	sampler.addArgument(&quot;ldapManagerDn&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group1&quot;))[tmp_ind_0]);
+	sampler.addArgument(&quot;ldapManagerPassword&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group2&quot;))[tmp_ind_0]);
+	sampler.addArgument(&quot;ldapUrl&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group3&quot;))[tmp_ind_0]);
+	sampler.addArgument(&quot;uploadLimit&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group5&quot;))[r.nextInt(3)]);
+	sampler.addArgument(&quot;downloadLimit&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group6&quot;))[r.nextInt(3)]);
+	sampler.addArgument(&quot;ldapSearchFilter&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group4&quot;))[tmp_ind_0]);
+	sampler.addArgument(&quot;streamPort&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group7&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;_ldapAutoShadowing&quot;, &quot;on&quot;);
+	sampler.addArgument(&quot;coverArtLimit&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group8&quot;))[r.nextInt(3)]);
+	sampler.addArgument(&quot;ldapEnabled&quot;, &quot;true&quot;);
+}
+else if(controller_id == 1) {
+	sampler.setPath(&quot;/subsonic/generalSettings.view&quot;);
+	sampler.addArgument(&quot;index&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group9&quot;))[r.nextInt(2)]);
+	if(r.nextBoolean()) {
+		sampler.addArgument(&quot;sortAlbumsByYear&quot;, &quot;true&quot;);
+	}
+	sampler.addArgument(&quot;ignoredArticles&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group10&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;coverArtFileTypes&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group16&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;shortcuts&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group11&quot;))[r.nextInt(2)]);
+	if(r.nextBoolean()) {
+		sampler.addArgument(&quot;gettingStartedEnabled&quot;, &quot;true&quot;);
+	}
+	sampler.addArgument(&quot;musicFileTypes&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group15&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;playlistFolder&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group12&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;localeIndex&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group22&quot;))[r.nextInt(28)]);
+	sampler.addArgument(&quot;themeIndex&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group23&quot;))[r.nextInt(27)]);
+	sampler.addArgument(&quot;loginMessage&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group13&quot;))[r.nextInt(3)]);
+	sampler.addArgument(&quot;videoFileTypes&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group14&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;_gettingStartedEnabled&quot;, &quot;on&quot;);
+	sampler.addArgument(&quot;_sortAlbumsByYear&quot;, &quot;on&quot;);
+	sampler.addArgument(&quot;welcomeMessage&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group18&quot;))[r.nextInt(3)]);
+	sampler.addArgument(&quot;welcomeTitle&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group17&quot;))[r.nextInt(3)]);
+	sampler.addArgument(&quot;welcomeSubtitle&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group19&quot;))[r.nextInt(3)]);
+}
+else if(controller_id == 2) {
+	sampler.setPath(&quot;/subsonic/musicFolderSettings.view&quot;);
+	sampler.addArgument(&quot;_fastCache&quot;, &quot;on&quot;);
+	sampler.addArgument(&quot;interval&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group25&quot;))[r.nextInt(8)]);
+	if(r.nextBoolean()) {
+		sampler.addArgument(&quot;fastCache&quot;, &quot;true&quot;);
+	}
+	sampler.addArgument(&quot;hour&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group24&quot;))[r.nextInt(24)]);
+}
+else if(controller_id == 3) {
+	sampler.setPath(&quot;/subsonic/networkSettings.view&quot;);
+	sampler.addArgument(&quot;urlRedirectFrom&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group21&quot;))[r.nextInt(3)]);
+	sampler.addArgument(&quot;_urlRedirectionEnabled&quot;, &quot;on&quot;);
+	sampler.addArgument(&quot;_portForwardingEnabled&quot;, &quot;on&quot;);
+	if(r.nextBoolean()) {
+		sampler.addArgument(&quot;urlRedirectionEnabled&quot;, &quot;true&quot;);
+	}
+}/*
+else if(controller_id == 4) {
+	sampler.setPath(&quot;/subsonic/podcastSettings.view&quot;);
+	sampler.addArgument(&quot;episodeDownloadCount&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group26&quot;))[r.nextInt(8)]);
+	sampler.addArgument(&quot;episodeRetentionCount&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group27&quot;))[r.nextInt(10)]);
+	sampler.addArgument(&quot;folder&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group20&quot;))[r.nextInt(2)]);
+	sampler.addArgument(&quot;interval&quot;, ((String[])ctx.getVariables().getObject(&quot;staccato.group28&quot;))[r.nextInt(4)]);
+}*/
+</stringProp>
+            </BeanShellPreProcessor>
+            <hashTree/>
+          </hashTree>
+          <BeanShellTimer guiclass="TestBeanGUI" testclass="BeanShellTimer" testname="BeanShell Timer" enabled="true">
+            <stringProp name="filename"></stringProp>
+            <stringProp name="parameters"></stringProp>
+            <boolProp name="resetInterpreter">false</boolProp>
+            <stringProp name="script">r = ctx.getVariables().getObject(&quot;staccato.rand&quot;);
+a = r.nextInt(500);
+return a;
+</stringProp>
+          </BeanShellTimer>
+          <hashTree/>
+        </hashTree>
+        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="false">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <dataType>true</dataType>
+              <encoding>false</encoding>
+              <assertions>true</assertions>
+              <subresults>true</subresults>
+              <responseData>false</responseData>
+              <samplerData>false</samplerData>
+              <xml>false</xml>
+              <fieldNames>false</fieldNames>
+              <responseHeaders>false</responseHeaders>
+              <requestHeaders>false</requestHeaders>
+              <responseDataOnError>false</responseDataOnError>
+              <saveAssertionResultsFailureMessage>false</saveAssertionResultsFailureMessage>
+              <assertionsResultsToSave>0</assertionsResultsToSave>
+              <bytes>true</bytes>
+              <threadCounts>true</threadCounts>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
+        <hashTree/>
+        <CookieManager guiclass="CookiePanel" testclass="CookieManager" testname="HTTP Cookie Manager" enabled="true">
+          <collectionProp name="CookieManager.cookies"/>
+          <boolProp name="CookieManager.clearEachIteration">false</boolProp>
+        </CookieManager>
+        <hashTree/>
+      </hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>

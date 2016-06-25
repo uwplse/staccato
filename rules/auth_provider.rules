@@ -1,0 +1,8 @@
+#include string.rules
+
+//+org.jivesoftware.openfire.auth.AuthProvider
+//!org.jivesoftware.openfire.auth.AuthProvider:authenticate
+//!org.jivesoftware.openfire.auth.AuthProvider:setPassword
+//!org.jivesoftware.openfire.auth.AuthProvider:getPassword
+//<org.jivesoftware.openfire.auth.HybridAuthProvider:getAuthProvider(Ljava/lang/String;)Lorg/jivesoftware/openfire/auth/AuthProvider;>
+

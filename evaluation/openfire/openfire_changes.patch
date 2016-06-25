@@ -1,0 +1,3398 @@
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/build/build.xml openfire_src/build/build.xml
+--- openfire_orig/build/build.xml	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/build/build.xml	2015-05-03 17:04:10.000000000 -0700
+@@ -270,8 +270,8 @@
+                 destdir="${compile.dir}"
+                 includeAntRuntime="no"
+                 debug="on"
+-                source="1.5"
+-                target="1.5"
++                source="1.7"
++                target="1.7"
+                 >
+             <src path="${src.java.dir}"/>
+             <patternset refid="compile.sources"/>
+@@ -290,8 +290,8 @@
+                         destdir="${overlay.compile.dir}"
+                         includeAntRuntime="no"
+                         debug="on"
+-                        source="1.5"
+-                        target="1.5"
++                        source="1.7"
++                        target="1.7"
+                         >
+                     <src path="${overlay.src.dir}"/>
+                     <patternset refid="compile.sources"/>
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/.gitignore openfire_src/.gitignore
+--- openfire_orig/.gitignore	1969-12-31 16:00:00.000000000 -0800
++++ openfire_src/.gitignore	2015-12-08 00:38:59.000000000 -0800
+@@ -0,0 +1,3 @@
++work
++target
++build
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/bin/openfire.sh openfire_src/src/bin/openfire.sh
+--- openfire_orig/src/bin/openfire.sh	2016-03-10 23:34:10.939219155 -0800
++++ openfire_src/src/bin/openfire.sh	2016-03-11 00:02:08.786125763 -0800
+@@ -161,5 +161,6 @@
+   esac
+ fi
+ 
+-openfire_exec_command="exec $JAVACMD -server $OPENFIRE_OPTS -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=60001 -classpath \"$LOCALCLASSPATH\" -jar \"$OPENFIRE_LIB/startup.jar\""
++openfire_exec_command="JAVA_HOME=/opt/jvm/jvm-enum-inst/ exec /opt/jvm/jvm-enum-inst/bin/java -Xbootclasspath/p:/home/staccato/staccato/staccato.jar:/home/staccato/staccato/phosphor.jar -javaagent:/home/staccato/staccato/phosphor.jar -Dstaccato.config-as-taint=true $OPENFIRE_DEF -server $OPENFIRE_OPTS -classpath \"$LOCALCLASSPATH\" -jar \"$OPENFIRE_LIB/startup.jar\""
++echo $openfire_exec_command
+ eval $openfire_exec_command
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/admin/AdminManager.java openfire_src/src/java/org/jivesoftware/openfire/admin/AdminManager.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/admin/AdminManager.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/admin/AdminManager.java	2016-02-05 13:50:11.000000000 -0800
+@@ -31,6 +31,10 @@
+ import org.slf4j.LoggerFactory;
+ import org.xmpp.packet.JID;
+ 
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.StaccatoRuntime;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++
+ /**
+  * The AdminManager manages the AdminProvider configured for this server, caches knowledge of
+  * accounts with admin permissions, and provides a single point of entry for handling
+@@ -76,7 +80,7 @@
+ 
+     /* Cache of admin accounts */
+     private List<JID> adminList;
+-    private AdminProvider provider;
++    private volatile AdminProvider provider;
+ 
+     /**
+      * Constructs a AdminManager, propery listener, and setting up the provider.
+@@ -108,10 +112,12 @@
+         PropertyEventDispatcher.addListener(propListener);
+     }
+ 
++    
+     /**
+      * Initializes the server's admin provider, based on configuration and defaults to
+      * DefaultAdminProvider if the specified provider is not valid or not specified.
+      */
++    @StaccatoCheck(CheckLevel.NONE)
+     private void initProvider() {
+         // Convert XML based provider setup to Database based
+         JiveGlobals.migrateProperty("provider.admin.className");
+@@ -121,8 +127,7 @@
+         // Check if we need to reset the provider class
+         if (provider == null || !className.equals(provider.getClass().getName())) {
+             try {
+-                Class c = ClassUtils.forName(className);
+-                provider = (AdminProvider) c.newInstance();
++            	provider = StaccatoRuntime.propagateReflection(className, ClassUtils.resolver);
+             }
+             catch (Exception e) {
+                 Log.error("Error loading admin provider: " + className, e);
+@@ -134,6 +139,7 @@
+     /**
+      * Reads the admin list from the provider and sets up the cache.
+      */
++    @StaccatoCheck
+     private void loadAdminList() {
+         adminList = provider.getAdmins();
+     }
+@@ -163,6 +169,7 @@
+      *
+      * @param username Username of account to add to list of admins.
+      */
++    @StaccatoCheck
+     public void addAdminAccount(String username) {
+         if (adminList == null) {
+             loadAdminList();
+@@ -183,6 +190,7 @@
+      *
+      * @param jid JID of account to add to list of admins.
+      */
++    @StaccatoCheck
+     public void addAdminAccount(JID jid) {
+         if (adminList == null) {
+             loadAdminList();
+@@ -204,6 +212,7 @@
+      *
+      * @param username Username of user to remove from admin list.
+      */
++    @StaccatoCheck
+     public void removeAdminAccount(String username) {
+         if (adminList == null) {
+             loadAdminList();
+@@ -223,6 +232,7 @@
+      *
+      * @param jid JID of user to remove from admin list.
+      */
++    @StaccatoCheck
+     public void removeAdminAccount(JID jid) {
+         if (adminList == null) {
+             loadAdminList();
+@@ -274,9 +284,12 @@
+         return adminList.contains(bareJID);
+     }
+ 
++    // these are not used
++
+     /**
+      * Clears the list of admin users.
+      */
++    @StaccatoCheck
+     public void clearAdminUsers() {
+         // Clear the admin list cache.
+         if (adminList == null) {
+@@ -294,6 +307,7 @@
+      *
+      * @param usernames List of usernames to set as admins.
+      */
++    @StaccatoCheck
+     public void setAdminUsers(List<String> usernames) {
+         if (adminList == null) {
+             adminList = new ArrayList<JID>();
+@@ -314,6 +328,7 @@
+      *
+      * @param jids List of jids to set as admins.
+      */
++    @StaccatoCheck
+     public void setAdminJIDs(List<JID> jids) {
+         if (adminList == null) {
+             adminList = new ArrayList<JID>();
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/admin/AdminProvider.java openfire_src/src/java/org/jivesoftware/openfire/admin/AdminProvider.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/admin/AdminProvider.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/admin/AdminProvider.java	2015-12-08 00:38:59.000000000 -0800
+@@ -18,9 +18,11 @@
+  */
+ package org.jivesoftware.openfire.admin;
+ 
++import java.util.List;
++
+ import org.xmpp.packet.JID;
+ 
+-import java.util.List;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoTrack;
+ 
+ /**
+  * An AdminProvider handles storage of information about admin accounts, and requests to
+@@ -28,6 +30,7 @@
+  *
+  * @author Daniel Henninger
+  */
++@StaccatoTrack
+ public interface AdminProvider {
+ 
+     /**
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/admin/DefaultAdminProvider.java openfire_src/src/java/org/jivesoftware/openfire/admin/DefaultAdminProvider.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/admin/DefaultAdminProvider.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/admin/DefaultAdminProvider.java	2015-12-08 00:38:59.000000000 -0800
+@@ -54,14 +54,12 @@
+         // Detect when the list of admin users is changed.
+         PropertyEventListener propListener = new PropertyEventListener() {
+             public void propertySet(String property, Map params) {
+-                Log.debug("DefaultAdminProvider: Property was set: "+property);
+                 if ("admin.authorizedJIDs".equals(property)) {
+                     AdminManager.getInstance().refreshAdminAccounts();
+                 }
+             }
+ 
+             public void propertyDeleted(String property, Map params) {
+-                Log.debug("DefaultAdminProvider: Property was deleted: "+property);
+                 if ("admin.authorizedJIDs".equals(property)) {
+                     AdminManager.getInstance().refreshAdminAccounts();
+                 }
+@@ -88,7 +86,6 @@
+      */
+     public List<JID> getAdmins() {
+         List<JID> adminList = new ArrayList<JID>();
+-
+         // Add bare JIDs of users that are admins (may include remote users), primarily used to override/add to list of admin users
+         String jids = JiveGlobals.getProperty("admin.authorizedJIDs");
+         jids = (jids == null || jids.trim().length() == 0) ? "" : jids;
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/admin/MyAdminProvider.java openfire_src/src/java/org/jivesoftware/openfire/admin/MyAdminProvider.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/admin/MyAdminProvider.java	1969-12-31 16:00:00.000000000 -0800
++++ openfire_src/src/java/org/jivesoftware/openfire/admin/MyAdminProvider.java	2015-12-08 00:38:59.000000000 -0800
+@@ -0,0 +1,6 @@
++package org.jivesoftware.openfire.admin;
++
++
++public class MyAdminProvider extends DefaultAdminProvider {
++
++}
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/audit/spi/AuditManagerImpl.java openfire_src/src/java/org/jivesoftware/openfire/audit/spi/AuditManagerImpl.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/audit/spi/AuditManagerImpl.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/audit/spi/AuditManagerImpl.java	2016-03-09 01:39:05.193971642 -0800
+@@ -20,7 +20,16 @@
+ 
+ package org.jivesoftware.openfire.audit.spi;
+ 
+-import org.jivesoftware.util.JiveGlobals;
++import java.io.File;
++import java.util.ArrayList;
++import java.util.Collection;
++import java.util.Collections;
++import java.util.Iterator;
++import java.util.LinkedList;
++import java.util.List;
++import java.util.Set;
++import java.util.StringTokenizer;
++
+ import org.jivesoftware.openfire.XMPPServer;
+ import org.jivesoftware.openfire.audit.AuditManager;
+ import org.jivesoftware.openfire.audit.Auditor;
+@@ -28,42 +37,49 @@
+ import org.jivesoftware.openfire.interceptor.InterceptorManager;
+ import org.jivesoftware.openfire.interceptor.PacketInterceptor;
+ import org.jivesoftware.openfire.session.Session;
++import org.jivesoftware.util.JiveGlobals;
++import org.jivesoftware.util.PropertyTransformer;
+ import org.xmpp.packet.JID;
+ import org.xmpp.packet.Packet;
+ 
+-import java.io.File;
+-import java.util.*;
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.PropagationTarget;
++import edu.washington.cse.instrumentation.runtime.StaccatoFieldRepair;
++import edu.washington.cse.instrumentation.runtime.TaintHelper;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoPropagate;
++import edu.washington.cse.instrumentation.runtime.containers.StaccatoList;
+ 
+ /**
+  * Implementation of the AuditManager interface.
+  */
+-public class AuditManagerImpl extends BasicModule implements AuditManager {
+-
+-    private boolean enabled;
+-    private boolean auditMessage;
+-    private boolean auditPresence;
+-    private boolean auditIQ;
+-    private boolean auditXPath;
++@StaccatoCheck(CheckLevel.STRICT)
++public class AuditManagerImpl extends BasicModule implements AuditManager, StaccatoFieldRepair {
++    private volatile boolean enabled;
++    private volatile boolean auditMessage;
++    private volatile boolean auditPresence;
++    private volatile boolean auditIQ;
++    private volatile boolean auditXPath;
+     private List xpath = new LinkedList();
+     private AuditorImpl auditor = null;
+     /**
+      * Max size in bytes that all audit log files may have. When the limit is reached
+      * oldest audit log files will be removed until total size is under the limit.
+      */
+-    private int maxTotalSize;
++    private volatile int maxTotalSize;
+     /**
+      * Max size in bytes that each audit log file may have. Once the limit has been
+      * reached a new audit file will be created.
+      */
+-    private int maxFileSize;
++    private volatile int maxFileSize;
+     /**
+      * Max number of days to keep audit information. Once the limit has been reached
+      * audit files that contain information that exceed the limit will be deleted.
+      */
+-    private int maxDays;
+-    private int logTimeout;
+-    private String logDir;
+-    private Collection<String> ignoreList = new ArrayList<String>();
++    private volatile int maxDays;
++    private volatile int logTimeout;
++    private volatile String logDir;
++    private volatile List<String> ignoreList = new ArrayList<String>();
+     private static final int MAX_TOTAL_SIZE = 1000;
+     private static final int MAX_FILE_SIZE = 10;
+     private static final int MAX_DAYS = -1;
+@@ -78,9 +94,10 @@
+         return enabled;
+     }
+ 
++    @StaccatoCheck(CheckLevel.NONE)
+     public void setEnabled(boolean enabled) {
+-        this.enabled = enabled;
+         JiveGlobals.setProperty("xmpp.audit.active", enabled ? "true" : "false");
++        this.enabled = enabled;
+         // Add or remove the auditor interceptor depending on the enabled status
+         if (enabled) {
+             InterceptorManager.getInstance().addInterceptor(interceptor);
+@@ -101,26 +118,30 @@
+         return maxTotalSize;
+     }
+ 
++    @StaccatoCheck(CheckLevel.NONE)
+     public void setMaxTotalSize(int size) {
++    	JiveGlobals.setProperty("xmpp.audit.totalsize", Integer.toString(size));
+         maxTotalSize = size;
+         auditor.setMaxValues(maxTotalSize, maxFileSize, maxDays);
+-        JiveGlobals.setProperty("xmpp.audit.totalsize", Integer.toString(size));
+     }
+ 
+     public int getMaxFileSize() {
+         return maxFileSize;
+     }
+ 
++    @StaccatoCheck(CheckLevel.NONE)
+     public void setMaxFileSize(int size) {
++    	JiveGlobals.setProperty("xmpp.audit.filesize", Integer.toString(size));
+         maxFileSize = size;
+         auditor.setMaxValues(maxTotalSize, maxFileSize, maxDays);
+-        JiveGlobals.setProperty("xmpp.audit.filesize", Integer.toString(size));
++      
+     }
+ 
+     public int getMaxDays() {
+         return maxDays;
+     }
+ 
++    @StaccatoCheck(CheckLevel.NONE)
+     public void setMaxDays(int count) {
+         if (count < -1) {
+             count = -1;
+@@ -128,65 +149,72 @@
+         if (count == 0) {
+             count = 1;
+         }
++        JiveGlobals.setProperty("xmpp.audit.days", Integer.toString(count));
+         maxDays = count;
+         auditor.setMaxValues(maxTotalSize, maxFileSize, maxDays);
+-        JiveGlobals.setProperty("xmpp.audit.days", Integer.toString(count));
+     }
+ 
+     public int getLogTimeout() {
+         return logTimeout;
+     }
+ 
++    @StaccatoCheck(CheckLevel.NONE)
+     public void setLogTimeout(int logTimeout) {
++    	JiveGlobals.setProperty("xmpp.audit.logtimeout", Integer.toString(logTimeout));
+         this.logTimeout = logTimeout;
+         auditor.setLogTimeout(logTimeout);
+-        JiveGlobals.setProperty("xmpp.audit.logtimeout", Integer.toString(logTimeout));
+     }
+ 
+     public String getLogDir() {
+         return logDir;
+     }
+ 
++    @StaccatoCheck(CheckLevel.NONE)
+     public void setLogDir(String logDir) {
++    	logDir = TaintHelper.copyString(logDir);
++			JiveGlobals.setProperty("xmpp.audit.logdir", logDir);
+         this.logDir = logDir;
+         auditor.setLogDir(logDir);
+-        JiveGlobals.setProperty("xmpp.audit.logdir", logDir);
+     }
+ 
+     public boolean isAuditMessage() {
+         return auditMessage;
+     }
+ 
++    @StaccatoCheck(CheckLevel.NONE)
+     public void setAuditMessage(boolean auditMessage) {
+-        this.auditMessage = auditMessage;
+         JiveGlobals.setProperty("xmpp.audit.message", auditMessage ? "true" : "false");
++        this.auditMessage = auditMessage;
+     }
+ 
+     public boolean isAuditPresence() {
+         return auditPresence;
+     }
+ 
++    @StaccatoCheck(CheckLevel.NONE)
+     public void setAuditPresence(boolean auditPresence) {
+-        this.auditPresence = auditPresence;
+         JiveGlobals.setProperty("xmpp.audit.presence", auditPresence ? "true" : "false");
++        this.auditPresence = auditPresence;
+     }
+ 
+     public boolean isAuditIQ() {
+         return auditIQ;
+     }
+ 
++    @StaccatoCheck(CheckLevel.NONE)
+     public void setAuditIQ(boolean auditIQ) {
+-        this.auditIQ = auditIQ;
+         JiveGlobals.setProperty("xmpp.audit.iq", Boolean.toString(auditIQ));
++      this.auditIQ = auditIQ;
+     }
+ 
+     public boolean isAuditXPath() {
+         return auditXPath;
+     }
+ 
++    @StaccatoCheck(CheckLevel.NONE)
+     public void setAuditXPath(boolean auditXPath) {
+-        this.auditXPath = auditXPath;
+         JiveGlobals.setProperty("xmpp.audit.xpath", Boolean.toString(auditXPath));
++        this.auditXPath = auditXPath;
+     }
+ 
+     public void addXPath(String xpathExpression) {
+@@ -209,22 +237,26 @@
+         return xpath.iterator();
+     }
+ 
++    /* JT: serialization primitive! */
++    @StaccatoCheck(value=CheckLevel.NONE)
+     public void setIgnoreList(Collection<String> usernames) {
++		List<String> usernameList = new StaccatoList<>(new ArrayList<String>(
++				usernames));
+         if (ignoreList.equals(usernames)) {
+             return;
+         }
+-        ignoreList = usernames;
+         // Encode the collection
+         StringBuilder ignoreString = new StringBuilder();
+-        for (String username : ignoreList) {
++		for (String username : usernameList) {
+             if (ignoreString.length() == 0) {
+                 ignoreString.append(username);
+-            }
+-            else {
++			} else {
+                 ignoreString.append(",").append(username);
+             }
+         }
+-        JiveGlobals.setProperty("xmpp.audit.ignore", ignoreString.toString());
++		JiveGlobals.setProperty("xmpp.audit.ignore", ignoreString.toString(),
++				usernameList);
++		ignoreList = usernameList;
+     }
+ 
+     public Collection<String> getIgnoreList() {
+@@ -235,6 +267,21 @@
+     // Basic module methods
+     // #########################################################################
+ 
++    private static PropertyTransformer<List<String>> lt = new PropertyTransformer<List<String>>(){
++    	@Override
++    	@StaccatoPropagate(PropagationTarget.RETURN)
++
++    	public List<String> transformProperty(String propValue) {
++    		List<String> toRet = new StaccatoList<>(new ArrayList<String>());
++            StringTokenizer tokenizer = new StringTokenizer(propValue, ", ");
++            while (tokenizer.hasMoreTokens()) {
++                String username = tokenizer.nextToken();
++                toRet.add(username);
++            }
++            return toRet;
++    	}
++    };
++    
+     @Override
+ 	public void initialize(XMPPServer server) {
+         super.initialize(server);
+@@ -254,13 +301,7 @@
+         logTimeout = JiveGlobals.getIntProperty("xmpp.audit.logtimeout", DEFAULT_LOG_TIMEOUT);
+         logDir = JiveGlobals.getProperty("xmpp.audit.logdir", JiveGlobals.getHomeDirectory() +
+                 File.separator + "logs");
+-        String ignoreString = JiveGlobals.getProperty("xmpp.audit.ignore", "");
+-        // Decode the ignore list
+-        StringTokenizer tokenizer = new StringTokenizer(ignoreString, ", ");
+-        while (tokenizer.hasMoreTokens()) {
+-            String username = tokenizer.nextToken();
+-            ignoreList.add(username);
+-        }
++        ignoreList = JiveGlobals.getObjectProperty("xmpp.audit.ignore", "", lt);
+ 
+         auditor = new AuditorImpl(this);
+         auditor.setMaxValues(maxTotalSize, maxFileSize, maxDays);
+@@ -280,8 +321,17 @@
+         }
+     }
+ 
+-    private class AuditorInterceptor implements PacketInterceptor {
++    @Override
++    public Object __staccato_repair_field(Set<String> failingProps, String fieldName,
++    		Object oldValue, RuntimeException e) {
++    	if(fieldName.equals("ignoreList")) {
++    		System.out.println("Found stale field " + fieldName + " " + e);
++    		return ignoreList = JiveGlobals.getObjectProperty("xmpp.audit.ignore", "", lt);
++    	} else { throw e; }
++    }
+ 
++    private class AuditorInterceptor implements PacketInterceptor {
++    		@StaccatoCheck(CheckLevel.STRICT)
+         public void interceptPacket(Packet packet, Session session, boolean read, boolean processed) {
+             if (!processed) {
+                 // Ignore packets sent or received by users that are present in the ignore list
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/audit/spi/AuditorImpl.java openfire_src/src/java/org/jivesoftware/openfire/audit/spi/AuditorImpl.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/audit/spi/AuditorImpl.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/audit/spi/AuditorImpl.java	2016-02-05 13:50:11.000000000 -0800
+@@ -56,6 +56,10 @@
+ import org.xmpp.packet.Packet;
+ import org.xmpp.packet.Presence;
+ 
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++
++@StaccatoCheck
+ public class AuditorImpl implements Auditor {
+ 
+ 	private static final Logger Log = LoggerFactory.getLogger(AuditorImpl.class);
+@@ -95,7 +99,7 @@
+     /**
+      * File (or better say directory) of the folder that contains the audit logs.
+      */
+-    private File baseFolder;
++    private volatile File baseFolder;
+ 
+     /**
+      * Queue that holds the audited packets that will be later saved to an XML file.
+@@ -123,12 +127,14 @@
+         auditFormat = FastDateFormat.getInstance("MMM dd, yyyy hh:mm:ss:SSS a", JiveGlobals.getLocale());
+     }
+ 
++    @StaccatoCheck(value=CheckLevel.NONE)
+     protected void setMaxValues(int totalSize, int fileSize, int days) {
+         maxTotalSize = (long) totalSize * 1024l * 1024l;
+         maxFileSize = (long) fileSize * 1024l * 1024l;
+         maxDays = days;
+     }
+ 
++    @StaccatoCheck(CheckLevel.NONE)
+     public void setLogTimeout(int logTimeout) {
+         // Cancel any existing task because the timeout has changed
+         if (saveQueuedPacketsTask != null) {
+@@ -140,6 +146,7 @@
+ 
+     }
+ 
++    @StaccatoCheck(CheckLevel.NONE)
+     public void setLogDir(String logDir) {
+         this.logDir = logDir;
+         // Create and catch file of the base folder that will contain audit files
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/auth/AuthFactory.java openfire_src/src/java/org/jivesoftware/openfire/auth/AuthFactory.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/auth/AuthFactory.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/auth/AuthFactory.java	2016-03-08 08:39:59.819179469 -0800
+@@ -36,6 +36,10 @@
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ 
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.StaccatoRuntime;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++
+ /**
+  * Pluggable authentication service. Users of Openfire that wish to change the AuthProvider
+  * implementation used to authenticate users can set the <code>AuthProvider.className</code>
+@@ -89,6 +93,7 @@
+         PropertyEventDispatcher.addListener(propListener);
+     }
+ 
++    @StaccatoCheck(CheckLevel.NONE)
+     private static void initProvider() {
+         // Convert XML based provider setup to Database based
+         JiveGlobals.migrateProperty("provider.auth.className");
+@@ -96,10 +101,9 @@
+         String className = JiveGlobals.getProperty("provider.auth.className",
+                 "org.jivesoftware.openfire.auth.DefaultAuthProvider");
+         // Check if we need to reset the auth provider class 
+-        if (authProvider == null || !className.equals(authProvider.getClass().getName())) {
++        if (/*authProvider == null || !className.equals(authProvider.getClass().getName())*/ true) {
+             try {
+-                Class c = ClassUtils.forName(className);
+-                authProvider = (AuthProvider)c.newInstance();
++            	authProvider = StaccatoRuntime.propagateReflection(className, ClassUtils.resolver);
+             }
+             catch (Exception e) {
+                 Log.error("Error loading auth provider: " + className, e);
+@@ -138,6 +142,7 @@
+      *
+      * @return true if plain password retrieval is supported.
+      */
++    @StaccatoCheck
+     public static boolean supportsPasswordRetrieval() {
+         return authProvider.supportsPasswordRetrieval();
+     }
+@@ -149,6 +154,7 @@
+      *
+      * @return true if plain text password authentication is supported.
+      */
++    @StaccatoCheck
+     public static boolean isPlainSupported() {
+         return authProvider.isPlainSupported();
+     }
+@@ -159,6 +165,7 @@
+      *
+      * @return true if digest authentication is supported.
+      */
++    @StaccatoCheck
+     public static boolean isDigestSupported() {
+         return authProvider.isDigestSupported();
+     }
+@@ -173,6 +180,7 @@
+      * @throws UnsupportedOperationException if the provider does not
+      *      support the operation (this is an optional operation).
+      */
++    @StaccatoCheck
+     public static String getPassword(String username) throws UserNotFoundException,
+             UnsupportedOperationException {
+         return authProvider.getPassword(username.toLowerCase());
+@@ -188,6 +196,7 @@
+      * @throws UnsupportedOperationException if the provider does not
+      *      support the operation (this is an optional operation).
+      */
++    @StaccatoCheck
+     public static void setPassword(String username, String password) throws UserNotFoundException, 
+     		UnsupportedOperationException, ConnectionException, InternalUnauthenticatedException {
+             authProvider.setPassword(username, password);
+@@ -204,6 +213,7 @@
+      * @throws UnauthorizedException if the username and password do not match any existing user
+      *      or the account is locked out.
+      */
++    @StaccatoCheck
+     public static AuthToken authenticate(String username, String password)
+             throws UnauthorizedException, ConnectionException, InternalUnauthenticatedException {
+         if (LockOutManager.getInstance().isAccountDisabled(username)) {
+@@ -228,6 +238,7 @@
+      * @throws UnauthorizedException if the username and password do not match any
+      *      existing user or the account is locked out.
+      */
++    @StaccatoCheck
+     public static AuthToken authenticate(String username, String token, String digest)
+             throws UnauthorizedException, ConnectionException, InternalUnauthenticatedException {
+         if (LockOutManager.getInstance().isAccountDisabled(username)) {
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/auth/AuthorizationManager.java openfire_src/src/java/org/jivesoftware/openfire/auth/AuthorizationManager.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/auth/AuthorizationManager.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/auth/AuthorizationManager.java	2016-02-05 13:50:11.000000000 -0800
+@@ -139,7 +139,6 @@
+      * @param principal The authenticated principal.
+      * @return true if the user is authorized.
+      */
+-
+     public static boolean authorize(String username, String principal) {
+         for (AuthorizationPolicy ap : authorizationPolicies) {
+             if (Log.isDebugEnabled()) {
+@@ -198,7 +197,6 @@
+      * @param principal The authentiated principal to determine the default username.
+      * @return The default username for the authentiated principal.
+      */
+-
+     public static String map(String principal) {
+         for (AuthorizationMapping am : authorizationMapping) {
+             if (Log.isDebugEnabled()) {
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/auth/AuthProvider.java openfire_src/src/java/org/jivesoftware/openfire/auth/AuthProvider.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/auth/AuthProvider.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/auth/AuthProvider.java	2015-12-08 00:38:59.000000000 -0800
+@@ -22,6 +22,8 @@
+ 
+ import org.jivesoftware.openfire.user.UserNotFoundException;
+ 
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoTrack;
++
+ /**
+  * Provider interface for authentication. Users that wish to integrate with
+  * their own authentication system must implement this class and then register
+@@ -37,6 +39,7 @@
+  *
+  * @author Matt Tucker
+  */
++@StaccatoTrack
+ public interface AuthProvider {
+ 
+     /**
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/auth/DefaultAuthorizationMapping.java openfire_src/src/java/org/jivesoftware/openfire/auth/DefaultAuthorizationMapping.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/auth/DefaultAuthorizationMapping.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/auth/DefaultAuthorizationMapping.java	2016-02-05 13:50:11.000000000 -0800
+@@ -20,6 +20,7 @@
+ 
+ package org.jivesoftware.openfire.auth;
+ 
++import java.util.Set;
+ import java.util.StringTokenizer;
+ import java.util.Vector;
+ 
+@@ -27,6 +28,12 @@
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ 
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.StaccatoFieldRepair;
++import org.jivesoftware.util.PropertyTransformer;
++import edu.washington.cse.instrumentation.runtime.containers.StaccatoList;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++
+ /**
+  * This is the interface the used to provide default default authorization
+  * ID's when none was selected by the client.
+@@ -35,22 +42,34 @@
+  * 
+  * @author Jay Kline
+  */
+-public class DefaultAuthorizationMapping implements AuthorizationMapping {
++public class DefaultAuthorizationMapping implements AuthorizationMapping, StaccatoFieldRepair {
+ 
+ 	private static final Logger Log = LoggerFactory.getLogger(DefaultAuthorizationMapping.class);
+ 
+-    private Vector<String> approvedRealms;
++	static final PropertyTransformer<StaccatoList<String>> arTransform = new PropertyTransformer<StaccatoList<String>>() {
++		@Override
++		public StaccatoList<String> transformProperty(String arg0) {
++			StaccatoList<String> toRet = new StaccatoList<>(new Vector<String>());
++			StringTokenizer st = new StringTokenizer(arg0, " ,\t\n\r\f");
++			while(st.hasMoreTokens()) {
++				toRet.add(st.nextToken());
++			}
++			return toRet;
++		}
++	};
+ 
+-    public DefaultAuthorizationMapping() {
+-        approvedRealms = new Vector<String>();
++    private volatile StaccatoList<String> approvedRealms;
+         
+-        String realmList = JiveGlobals.getProperty("sasl.approvedRealms");
+-        if(realmList != null) {
+-            StringTokenizer st = new StringTokenizer(realmList, " ,\t\n\r\f");
+-            while(st.hasMoreTokens()) {
+-                approvedRealms.add(st.nextToken());
++    public DefaultAuthorizationMapping() {
++        approvedRealms = JiveGlobals.getObjectProperty("sasl.approvedRealms", "", arTransform);
+             }
++	@Override
++	public Object __staccato_repair_field(Set<String> arg0, String arg1,
++			Object arg2, RuntimeException arg3) {
++		if(!arg1.equals("approvedRealms")) {
++			throw arg3;
+         }
++		return approvedRealms = JiveGlobals.getObjectProperty("sasl.approvedRealms", "", arTransform);
+     }
+ 
+     /**
+@@ -59,6 +78,7 @@
+      * @param principal The autheticated principal requesting authorization.
+      * @return The name of the default username to use.
+      */
++    @StaccatoCheck(CheckLevel.STRICT)
+     public String map(String principal) {
+         if(principal.contains("@")) {
+             String realm = principal.substring(principal.lastIndexOf('@')+1);
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/auth/DefaultAuthorizationPolicy.java openfire_src/src/java/org/jivesoftware/openfire/auth/DefaultAuthorizationPolicy.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/auth/DefaultAuthorizationPolicy.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/auth/DefaultAuthorizationPolicy.java	2016-02-05 13:50:11.000000000 -0800
+@@ -20,13 +20,17 @@
+ 
+ package org.jivesoftware.openfire.auth;
+ 
+-import java.util.StringTokenizer;
+-import java.util.Vector;
++import java.util.Set;
+ 
+ import org.jivesoftware.util.JiveGlobals;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ 
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.StaccatoFieldRepair;
++import edu.washington.cse.instrumentation.runtime.containers.StaccatoList;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++
+ /**
+  * Different clients perform authentication differently, so this policy 
+  * will authorize any principal to a requested user that match specific 
+@@ -57,22 +61,23 @@
+  * @see AuthorizationManager
+  * @author Jay Kline
+  */
+-public class DefaultAuthorizationPolicy implements AuthorizationPolicy {
++public class DefaultAuthorizationPolicy implements AuthorizationPolicy, StaccatoFieldRepair {
+ 
+ 	private static final Logger Log = LoggerFactory.getLogger(DefaultAuthorizationPolicy.class);
+ 
+-    private Vector<String> approvedRealms;
++    private volatile StaccatoList<String> approvedRealms;
+ 
+     public DefaultAuthorizationPolicy() {
+-        approvedRealms = new Vector<String>();
+-        
+-        String realmList = JiveGlobals.getProperty("sasl.approvedRealms");
+-        if(realmList != null) {
+-            StringTokenizer st = new StringTokenizer(realmList, " ,\t\n\r\f");
+-            while(st.hasMoreTokens()) {
+-                approvedRealms.add(st.nextToken());
++        approvedRealms = JiveGlobals.getObjectProperty("sasl.approvedRealms", "", DefaultAuthorizationMapping.arTransform);
+             }
++
++    @Override
++    public Object __staccato_repair_field(Set<String> failingProps, String fieldName,
++    		Object fieldValue, RuntimeException e) {
++    	if(!fieldName.equals("approvedRealms")) {
++    		throw e;
+         }
++    	return approvedRealms = JiveGlobals.getObjectProperty("sasl.approvedRealms", "", DefaultAuthorizationMapping.arTransform);
+     }
+ 
+     /**
+@@ -82,6 +87,7 @@
+      * @param authenID The authenticated ID (principal) requesting the username.
+      * @return true if the authenticated ID is authorized to the requested user.
+      */
++    @StaccatoCheck(CheckLevel.STRICT)
+     public boolean authorize(String username, String authenID) {
+         boolean authorized = false;
+ 
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/auth/HybridAuthProvider.java openfire_src/src/java/org/jivesoftware/openfire/auth/HybridAuthProvider.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/auth/HybridAuthProvider.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/auth/HybridAuthProvider.java	2016-03-08 08:42:57.071178213 -0800
+@@ -25,9 +25,16 @@
+ import org.jivesoftware.openfire.user.UserNotFoundException;
+ import org.jivesoftware.util.ClassUtils;
+ import org.jivesoftware.util.JiveGlobals;
++import org.jivesoftware.util.PropertyTransformer;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ 
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.StaccatoFieldRepair;
++import edu.washington.cse.instrumentation.runtime.StaccatoRuntime;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++import edu.washington.cse.instrumentation.runtime.containers.StaccatoSet;
++
+ /**
+  * The hybrid auth provider allows up to three AuthProvider implementations to
+  * be strung together to do chained authentication checking. The algorithm is
+@@ -75,117 +82,54 @@
+  *
+  * @author Matt Tucker
+  */
+-public class HybridAuthProvider implements AuthProvider {
++public class HybridAuthProvider implements AuthProvider, StaccatoFieldRepair {
++
++	private static final String PRIMARY_PROVIDER_CLASSNAME_PROPERTY = "hybridAuthProvider.primaryProvider.className";
++	private static final String SECONDARY_PROVIDER_CLASSNAME_PROPERTY = "hybridAuthProvider.secondaryProvider.className";
++	private static final String TERTIARY_PROVIDER_CLASSNAME_PROPERTY = "hybridAuthProvider.tertiaryProvider.className";
++	
++	private static final PropertyTransformer<Set<String>> overrideTransformer = new PropertyTransformer<Set<String>>() {
++		@Override
++		public Set<String> transformProperty(String overrideList) {
++			Set<String> toRet = new StaccatoSet<>(new HashSet<String>());
++            for (String user: overrideList.split(",")) {
++                toRet.add(user.trim().toLowerCase());
++            }
++            return toRet;
++		}
++	};
+ 
+ 	private static final Logger Log = LoggerFactory.getLogger(HybridAuthProvider.class);
+ 
+-    private AuthProvider primaryProvider;
+-    private AuthProvider secondaryProvider;
+-    private AuthProvider tertiaryProvider;
+-
+-    private Set<String> primaryOverrides = new HashSet<String>();
+-    private Set<String> secondaryOverrides = new HashSet<String>();
+-    private Set<String> tertiaryOverrides = new HashSet<String>();
++    private volatile AuthProvider primaryProvider;
++    private volatile AuthProvider secondaryProvider;
++    private volatile AuthProvider tertiaryProvider;
++
++    private volatile Set<String> primaryOverrides = new HashSet<String>();
++    private volatile Set<String> secondaryOverrides = new HashSet<String>();
++    private volatile Set<String> tertiaryOverrides = new HashSet<String>();
+ 
+     public HybridAuthProvider() {
+         // Convert XML based provider setup to Database based
+-        JiveGlobals.migrateProperty("hybridAuthProvider.primaryProvider.className");
+-        JiveGlobals.migrateProperty("hybridAuthProvider.primaryProvider.className");
+-        JiveGlobals.migrateProperty("hybridAuthProvider.secondaryProvider.className");
+-        JiveGlobals.migrateProperty("hybridAuthProvider.tertiaryProvider.className");
++        JiveGlobals.migrateProperty(PRIMARY_PROVIDER_CLASSNAME_PROPERTY);
++        JiveGlobals.migrateProperty(PRIMARY_PROVIDER_CLASSNAME_PROPERTY);
++        JiveGlobals.migrateProperty(SECONDARY_PROVIDER_CLASSNAME_PROPERTY);
++        JiveGlobals.migrateProperty(TERTIARY_PROVIDER_CLASSNAME_PROPERTY);
+         JiveGlobals.migrateProperty("hybridAuthProvider.primaryProvider.overrideList");
+         JiveGlobals.migrateProperty("hybridAuthProvider.secondaryProvider.overrideList");
+         JiveGlobals.migrateProperty("hybridAuthProvider.tertiaryProvider.overrideList");
+ 
+-        // Load primary, secondary, and tertiary auth providers.
+-        String primaryClass = JiveGlobals.getProperty(
+-                "hybridAuthProvider.primaryProvider.className");
+-        if (primaryClass == null) {
+-            Log.error("A primary AuthProvider must be specified. Authentication will be disabled.");
+-            return;
+-        }
+-        try {
+-            Class c = ClassUtils.forName(primaryClass);
+-            primaryProvider = (AuthProvider)c.newInstance();
+-            // All providers must support plain auth.
+-            if (!primaryProvider.isPlainSupported()) {
+-                Log.error("Provider " + primaryClass + " must support plain authentication. " +
+-                        "Authentication disabled.");
+-                primaryProvider = null;
+-                return;
+-            }
+-            Log.debug("Primary auth provider: " + primaryClass);
+-        }
+-        catch (Exception e) {
+-            Log.error("Unable to load primary auth provider: " + primaryClass +
+-                    ". Authentication will be disabled.", e);
+-            return;
+-        }
+-
+-        String secondaryClass = JiveGlobals.getProperty(
+-                "hybridAuthProvider.secondaryProvider.className");
+-        if (secondaryClass != null) {
+-            try {
+-                Class c = ClassUtils.forName(secondaryClass);
+-                secondaryProvider = (AuthProvider)c.newInstance();
+-                // All providers must support plain auth.
+-                if (!secondaryProvider.isPlainSupported()) {
+-                    Log.error("Provider " + secondaryClass + " must support plain authentication. " +
+-                            "Authentication disabled.");
+-                    primaryProvider = null;
+-                    secondaryProvider = null;
+-                    return;
+-                }
+-                Log.debug("Secondary auth provider: " + secondaryClass);
+-            }
+-            catch (Exception e) {
+-                Log.error("Unable to load secondary auth provider: " + secondaryClass, e);
+-            }
+-        }
+-
+-        String tertiaryClass = JiveGlobals.getProperty(
+-                "hybridAuthProvider.tertiaryProvider.className");
+-        if (tertiaryClass != null) {
+-            try {
+-                Class c = ClassUtils.forName(tertiaryClass);
+-                tertiaryProvider = (AuthProvider)c.newInstance();
+-                // All providers must support plain auth.
+-                if (!tertiaryProvider.isPlainSupported()) {
+-                    Log.error("Provider " + tertiaryClass + " must support plain authentication. " +
+-                            "Authentication disabled.");
+-                    primaryProvider = null;
+-                    secondaryProvider = null;
+-                    tertiaryProvider = null;
+-                    return;
+-                }
+-                Log.debug("Tertiary auth provider: " + tertiaryClass);
+-            }
+-            catch (Exception e) {
+-                Log.error("Unable to load tertiary auth provider: " + tertiaryClass, e);
+-            }
+-        }
++        initAuthProviders();
+ 
+         // Now, load any overrides.
+-        String overrideList = JiveGlobals.getProperty(
+-                "hybridAuthProvider.primaryProvider.overrideList", "");
+-        for (String user: overrideList.split(",")) {
+-            primaryOverrides.add(user.trim().toLowerCase());
+-        }
++        primaryOverrides = loadOverrideList("hybridAuthProvider.primaryProvider.overrideList");
+ 
+         if (secondaryProvider != null) {
+-            overrideList = JiveGlobals.getProperty(
+-                    "hybridAuthProvider.secondaryProvider.overrideList", "");
+-            for (String user: overrideList.split(",")) {
+-                secondaryOverrides.add(user.trim().toLowerCase());
+-            }
++        	secondaryOverrides = loadOverrideList("hybridAuthProvider.secondaryProvider.overrideList");
+         }
+ 
+         if (tertiaryProvider != null) {
+-            overrideList = JiveGlobals.getProperty(
+-                    "hybridAuthProvider.tertiaryProvider.overrideList", "");
+-            for (String user: overrideList.split(",")) {
+-                tertiaryOverrides.add(user.trim().toLowerCase());
+-            }
++            tertiaryOverrides = loadOverrideList("hybridAuthProvider.tertiaryProvider.overrideList");
+         }
+     }
+ 
+@@ -197,7 +141,9 @@
+         return false;
+     }
+ 
++    @StaccatoCheck(CheckLevel.TRANSACT)
+     public void authenticate(String username, String password) throws UnauthorizedException, ConnectionException, InternalUnauthenticatedException {
++    	StaccatoRuntime.commit(primaryProvider, secondaryProvider, tertiaryProvider, primaryOverrides, secondaryOverrides, tertiaryOverrides);
+         // Check overrides first.
+         if (primaryOverrides.contains(username.toLowerCase())) {
+             primaryProvider.authenticate(username, password);
+@@ -236,6 +182,34 @@
+         }
+     }
+ 
++    private void initAuthProviders() {
++        // Load primary, secondary, and tertiary auth providers.
++        String primaryClass = JiveGlobals.getProperty(
++                PRIMARY_PROVIDER_CLASSNAME_PROPERTY);
++        if (primaryClass == null) {
++            Log.error("A primary AuthProvider must be specified. Authentication will be disabled.");
++            return;
++        }
++        if(initPrimaryProvider(primaryClass) == null) {
++        	return;
++        }
++
++        String secondaryClass = JiveGlobals.getProperty(
++                SECONDARY_PROVIDER_CLASSNAME_PROPERTY);
++        if (secondaryClass != null && initSecondaryProvider(secondaryClass) == null) {
++            primaryProvider = null;
++            return;
++        }
++
++        String tertiaryClass = JiveGlobals.getProperty(
++                TERTIARY_PROVIDER_CLASSNAME_PROPERTY);
++        if (tertiaryClass != null && initTertiaryProvider(tertiaryClass) == null) {
++            primaryProvider = null;
++            secondaryProvider = null;
++            return;
++        }
++    }
++
+     public void authenticate(String username, String token, String digest)
+             throws UnauthorizedException
+     {
+@@ -257,4 +231,59 @@
+     public boolean supportsPasswordRetrieval() {
+         return false;
+     }
++    
++
++	@Override
++	public Object __staccato_repair_field(Set<String> failingProps, String failingField,
++			Object failingObject, RuntimeException e) {
++		if(failingField.equals("secondaryProvider")) {
++			return initSecondaryProvider(JiveGlobals.getProperty(SECONDARY_PROVIDER_CLASSNAME_PROPERTY));
++		} else if(failingField.equals("tertiaryProvider")) {
++			return initTertiaryProvider(JiveGlobals.getProperty(TERTIARY_PROVIDER_CLASSNAME_PROPERTY));
++		} else if(failingField.equals("primaryProvider")) {
++			return initPrimaryProvider(JiveGlobals.getProperty(PRIMARY_PROVIDER_CLASSNAME_PROPERTY));
++		} else if(failingField.equals("primaryOverrides")) {
++			return primaryOverrides = loadOverrideList("hybridAuthProvider.primaryProvider.overrideList");
++		} else if(failingField.equals("secondaryOverrides")) {
++			return secondaryOverrides = loadOverrideList("hybridAuthProvider.secondaryProvider.overrideList");
++		} else if(failingField.equals("tertiaryOverrides")) {
++			return tertiaryOverrides = loadOverrideList("hybridAuthProvider.tertiaryProvider.overrideList");
++		} else {
++			throw e;
++		}
++	}
++
++	private AuthProvider initTertiaryProvider(String tertiaryClass) {
++		return tertiaryProvider = loadProvider(tertiaryClass, "tertiary", "");
++	}
++	
++	private AuthProvider initPrimaryProvider(String primaryClass) {
++		return primaryProvider = loadProvider(primaryClass, "primary", ". Authentication will be disabled.");
++	}
++
++	private AuthProvider initSecondaryProvider(String secondaryClass) {
++		return secondaryProvider = loadProvider(secondaryClass, "secondary", "");
++	}
++	
++	private AuthProvider loadProvider(String className, String providerName, String postMessage) {
++		if(className == null) {
++			return null;
++		}
++		try {
++			AuthProvider provider = StaccatoRuntime.<AuthProvider>propagateReflection(className, ClassUtils.resolver);
++			if(!provider.isPlainSupported()) {
++				Log.error("Provider " + className + " must support plain authentication. " +
++						"Authentication disabled.");
++				return null;
++			}
++			return provider;
++		} catch(Exception e) {
++			Log.error("Unabled to load " + providerName + " auth provider:" + className + postMessage, e);
++			return null;
++		}
++	}
++	
++	private Set<String> loadOverrideList(String listName) {
++		return JiveGlobals.getObjectProperty(listName, "", overrideTransformer);
++	}
+ }
+\ No newline at end of file
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/auth/JDBCAuthProvider.java openfire_src/src/java/org/jivesoftware/openfire/auth/JDBCAuthProvider.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/auth/JDBCAuthProvider.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/auth/JDBCAuthProvider.java	2016-03-08 08:41:21.511178890 -0800
+@@ -24,6 +24,7 @@
+ import java.sql.PreparedStatement;
+ import java.sql.ResultSet;
+ import java.sql.SQLException;
++import java.util.Set;
+ 
+ import org.jivesoftware.database.DbConnectionManager;
+ import org.jivesoftware.openfire.XMPPServer;
+@@ -35,6 +36,11 @@
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ 
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.StaccatoFieldRepair;
++import edu.washington.cse.instrumentation.runtime.StaccatoRuntime;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++
+ /**
+  * The JDBC auth provider allows you to authenticate users against any database
+  * that you can connect to with JDBC. It can be used along with the
+@@ -75,7 +81,7 @@
+  *
+  * @author David Snopek
+  */
+-public class JDBCAuthProvider implements AuthProvider {
++public class JDBCAuthProvider implements AuthProvider, StaccatoFieldRepair {
+ 
+ 	private static final Logger Log = LoggerFactory.getLogger(JDBCAuthProvider.class);
+ 
+@@ -130,7 +136,28 @@
+         }
+     }
+ 
++    @Override
++	public Object __staccato_repair_field(Set<String> failingProps, String fieldName,	Object failingObject, RuntimeException e) {
++		if(fieldName.equals("connectionString")) {
++			return connectionString = JiveGlobals.getProperty("jdbcProvider.connectionString");
++		} else if(fieldName.equals("passwordSQL")) {
++			return passwordSQL = JiveGlobals.getProperty("jdbcAuthProvider.passwordSQL");
++		} else if(fieldName.equals("setPasswordSQL")) {
++			return setPasswordSQL = JiveGlobals.getProperty("jdbcAuthProvider.setPasswordSQL");
++		} else if(fieldName.equals("allowUpdate")) {
++			return allowUpdate = JiveGlobals.getBooleanProperty("jdbcAuthProvider.allowUpdate");
++		} else if(fieldName.equals("passwordType")) {
++			return passwordType = PasswordType.valueOf(JiveGlobals.getProperty("jdbcAuthProvider.passwordType", "plain"));
++		} else if(fieldName.equals("useConnectionProvider")) {
++			return useConnectionProvider = JiveGlobals.getBooleanProperty("jdbcAuthProvider.useConnectionProvider");
++		} else {
++			throw e;
++		}
++	}
++    
++    @StaccatoCheck(CheckLevel.TRANSACT)
+     public void authenticate(String username, String password) throws UnauthorizedException {
++    	StaccatoRuntime.commit(passwordSQL, connectionString, passwordType);
+         if (username == null || password == null) {
+             throw new UnauthorizedException();
+         }
+@@ -175,9 +202,11 @@
+         createUser(username);
+     }
+ 
++    @StaccatoCheck(CheckLevel.TRANSACT)
+     public void authenticate(String username, String token, String digest)
+             throws UnauthorizedException
+     {
++    	StaccatoRuntime.commit(passwordType, passwordSQL, connectionString, passwordType, useConnectionProvider);
+         if (passwordType != PasswordType.plain) {
+             throw new UnsupportedOperationException("Digest authentication not supported for "
+                     + "password type " + passwordType);
+@@ -223,10 +252,11 @@
+         return (passwordSQL != null && passwordType == PasswordType.plain);
+     }
+ 
++    @StaccatoCheck(CheckLevel.TRANSACT)
+     public String getPassword(String username) throws UserNotFoundException,
+             UnsupportedOperationException
+     {
+-
++    	StaccatoRuntime.commit(passwordType, passwordSQL, connectionString, passwordType, useConnectionProvider);
+         if (!supportsPasswordRetrieval()) {
+             throw new UnsupportedOperationException();
+         }
+@@ -244,9 +274,11 @@
+         return getPasswordValue(username);
+     }
+ 
++    @StaccatoCheck(CheckLevel.TRANSACT)
+     public void setPassword(String username, String password)
+             throws UserNotFoundException, UnsupportedOperationException
+     {
++    	StaccatoRuntime.commit(passwordType, setPasswordSQL, connectionString, useConnectionProvider);
+         if (allowUpdate && setPasswordSQL != null) {
+             setPasswordValue(username, password);
+         } else { 
+@@ -258,6 +290,7 @@
+         return (passwordSQL != null && passwordType == PasswordType.plain);
+     }
+ 
++	@StaccatoCheck(CheckLevel.STRICT)
+     private Connection getConnection() throws SQLException {
+         if (useConnectionProvider)
+             return DbConnectionManager.getConnection();
+@@ -272,6 +305,7 @@
+      * @return the password value.
+      * @throws UserNotFoundException if the given user could not be loaded.
+      */
++    @StaccatoCheck(CheckLevel.STRICT)
+     private String getPasswordValue(String username) throws UserNotFoundException {
+         String password = null;
+         Connection con = null;
+@@ -311,7 +345,7 @@
+         }
+         return password;
+     }
+-
++    @StaccatoCheck(CheckLevel.STRICT)
+     private void setPasswordValue(String username, String password) throws UserNotFoundException {
+         Connection con = null;
+         PreparedStatement pstmt = null;
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/auth/MyAuthProvider.java openfire_src/src/java/org/jivesoftware/openfire/auth/MyAuthProvider.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/auth/MyAuthProvider.java	1969-12-31 16:00:00.000000000 -0800
++++ openfire_src/src/java/org/jivesoftware/openfire/auth/MyAuthProvider.java	2015-12-08 00:38:59.000000000 -0800
+@@ -0,0 +1,5 @@
++package org.jivesoftware.openfire.auth;
++
++public class MyAuthProvider extends DefaultAuthProvider {
++
++}
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/auth/POP3AuthProvider.java openfire_src/src/java/org/jivesoftware/openfire/auth/POP3AuthProvider.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/auth/POP3AuthProvider.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/auth/POP3AuthProvider.java	2016-02-05 13:50:11.000000000 -0800
+@@ -129,7 +129,6 @@
+             }
+         }
+     }
+-
+     public void authenticate(String username, String password) throws UnauthorizedException {
+         if (username == null || password == null) {
+             throw new UnauthorizedException();
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/disco/DiscoServerItem.java openfire_src/src/java/org/jivesoftware/openfire/disco/DiscoServerItem.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/disco/DiscoServerItem.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/disco/DiscoServerItem.java	2015-12-08 00:38:59.000000000 -0800
+@@ -22,6 +22,9 @@
+ 
+ import org.xmpp.packet.JID;
+ 
++import edu.washington.cse.instrumentation.runtime.PropagationTarget;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoPropagate;
++
+ /**
+  * Represent a DiscoItem provided by the server. Therefore, the DiscoServerItems are responsible
+  * for providing the DiscoInfoProvider and DiscoItemsProvider that will provide the information and
+@@ -42,7 +45,6 @@
+ 
+ 	private final DiscoInfoProvider infoProvider;
+ 	private final DiscoItemsProvider itemsProvider;
+-	
+ 	public DiscoServerItem(JID jid, String name, String node, String action, DiscoInfoProvider infoProvider, DiscoItemsProvider itemsProvider) {
+ 		super(jid, name, node, action);
+ 		
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/filetransfer/proxy/FileTransferProxy.java openfire_src/src/java/org/jivesoftware/openfire/filetransfer/proxy/FileTransferProxy.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/filetransfer/proxy/FileTransferProxy.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/filetransfer/proxy/FileTransferProxy.java	2016-02-05 13:50:11.000000000 -0800
+@@ -27,6 +27,7 @@
+ import java.util.Iterator;
+ import java.util.List;
+ import java.util.Map;
++import java.util.Set;
+ 
+ import org.dom4j.DocumentHelper;
+ import org.dom4j.Element;
+@@ -55,6 +56,10 @@
+ import org.xmpp.packet.Packet;
+ import org.xmpp.packet.PacketError;
+ 
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.StaccatoFieldRepair;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++
+ /**
+  * Manages the transfering of files between two remote entities on the jabber network.
+  * This class acts independtly as a Jabber component from the rest of the server, according to
+@@ -64,7 +69,7 @@
+  */
+ public class FileTransferProxy extends BasicModule
+         implements ServerItemsProvider, DiscoInfoProvider, DiscoItemsProvider,
+-        RoutableChannelHandler {
++        RoutableChannelHandler, StaccatoFieldRepair {
+ 	
+ 	private static final Logger Log = LoggerFactory.getLogger(FileTransferProxy.class);
+ 
+@@ -89,12 +94,12 @@
+      */
+     public static final int DEFAULT_PORT = 7777;
+ 
+-    private String proxyServiceName;
++    private volatile String proxyServiceName;
+ 
+     private IQHandlerInfo info;
+     private RoutingTable routingTable;
+     private PacketRouter router;
+-    private String proxyIP;
++    private volatile String proxyIP;
+     private ProxyConnectionManager connectionManager;
+ 
+     private InetAddress bindInterface;
+@@ -108,6 +113,25 @@
+         PropertyEventDispatcher.addListener(new FileTransferPropertyListener());
+     }
+ 
++    @Override
++    public Object __staccato_repair_field(Set<String> arg0, String fieldName,
++    		Object arg2, RuntimeException e) {
++    	if(fieldName.equals("proxyIP")) {
++            try {
++                return proxyIP = JiveGlobals.getProperty("xmpp.proxy.externalip",
++                        (bindInterface != null ? bindInterface.getHostAddress()
++                                : InetAddress.getLocalHost().getHostAddress()));
++            }
++            catch (UnknownHostException uhe) {
++                throw e;
++            }
++    	} else if(fieldName.equals("proxyServiceName")) {
++    		return proxyServiceName = JiveGlobals.getProperty("xmpp.proxy.service", "proxy");
++    	} else {
++    		throw e;
++    	}
++    }
++    @StaccatoCheck(CheckLevel.STRICT)
+     public boolean handleIQ(IQ packet) throws UnauthorizedException {
+         Element childElement = packet.getChildElement();
+         String namespace = null;
+@@ -297,6 +321,7 @@
+      *
+      * @return the file transfer server domain (service name + host name).
+      */
++    @StaccatoCheck
+     public String getServiceDomain() {
+         return proxyServiceName + "." + XMPPServer.getInstance().getServerInfo().getXMPPDomain();
+     }
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/filetransfer/proxy/ProxyConnectionManager.java openfire_src/src/java/org/jivesoftware/openfire/filetransfer/proxy/ProxyConnectionManager.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/filetransfer/proxy/ProxyConnectionManager.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/filetransfer/proxy/ProxyConnectionManager.java	2016-02-05 13:50:11.000000000 -0800
+@@ -28,6 +28,7 @@
+ import java.net.ServerSocket;
+ import java.net.Socket;
+ import java.util.Map;
++import java.util.Set;
+ import java.util.concurrent.ExecutorService;
+ import java.util.concurrent.Executors;
+ import java.util.concurrent.Future;
+@@ -46,6 +47,10 @@
+ import org.slf4j.LoggerFactory;
+ import org.xmpp.packet.JID;
+ 
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.StaccatoFieldRepair;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++
+ /**
+  * Manages the connections to the proxy server. The connections go through two stages before
+  * file transfer begins. The first stage is when the file transfer target initiates a connection
+@@ -54,7 +59,7 @@
+  *
+  * @author Alexander Wenckus
+  */
+-public class ProxyConnectionManager {
++public class ProxyConnectionManager implements StaccatoFieldRepair {
+ 
+ 	private static final Logger Log = LoggerFactory.getLogger(ProxyConnectionManager.class);
+ 
+@@ -74,7 +79,7 @@
+ 
+     private FileTransferManager transferManager;
+ 
+-    private String className;
++    private volatile String className;
+ 
+     public ProxyConnectionManager(FileTransferManager manager) {
+         String cacheName = "File Transfer";
+@@ -87,10 +92,22 @@
+         StatisticsManager.getInstance().addStatistic(proxyTransferRate, new ProxyTracker());
+     }
+ 
++    @Override
++    public Object __staccato_repair_field(Set<String> arg0, String arg1,
++    		Object arg2, RuntimeException arg3) {
++    	if(arg1.equals("className")) {
++    		return className = JiveGlobals.getProperty("provider.transfer.proxy",
++                    "org.jivesoftware.openfire.filetransfer.proxy.DefaultProxyTransfer");
++    	} else {
++    		throw arg3;
++    	}
++    }
++
+     /*
+     * Processes the clients connecting to the proxy matching the initiator and target together.
+     * This is the main loop of the manager which will run until the process is canceled.
+     */
++    @StaccatoCheck(CheckLevel.NONE)
+     synchronized void processConnections(final InetAddress bindInterface, final int port) {
+         if (socketProcess != null) {
+             if (proxyPort == port) {
+@@ -207,7 +224,7 @@
+             throw new IOException("Illegal proxy transfer");
+         }
+     }
+-
++    @StaccatoCheck(CheckLevel.STRICT)
+     private ProxyTransfer createProxyTransfer(String transferDigest, Socket targetSocket)
+             throws IOException {
+         ProxyTransfer provider;
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/group/GroupManager.java openfire_src/src/java/org/jivesoftware/openfire/group/GroupManager.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/group/GroupManager.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/group/GroupManager.java	2016-02-05 13:50:11.000000000 -0800
+@@ -22,7 +22,6 @@
+ 
+ import java.util.Collection;
+ import java.util.Collections;
+-import java.util.Iterator;
+ import java.util.Map;
+ 
+ import org.jivesoftware.openfire.XMPPServer;
+@@ -42,12 +41,17 @@
+ import org.slf4j.LoggerFactory;
+ import org.xmpp.packet.JID;
+ 
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.StaccatoRuntime;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++
+ /**
+  * Manages groups.
+  *
+  * @see Group
+  * @author Matt Tucker
+  */
++@StaccatoCheck(CheckLevel.STRICT)
+ public class GroupManager {
+ 
+ 	private static final Logger Log = LoggerFactory.getLogger(GroupManager.class);
+@@ -72,7 +76,7 @@
+ 
+     private Cache<String, Group> groupCache;
+     private Cache<String, Object> groupMetaCache;
+-    private GroupProvider provider;
++    private volatile GroupProvider provider;
+ 
+     private GroupManager() {
+         // Initialize caches.
+@@ -252,6 +256,7 @@
+         PropertyEventDispatcher.addListener(propListener);
+     }
+ 
++    @StaccatoCheck(CheckLevel.NONE)
+     private void initProvider() {
+         // Convert XML based provider setup to Database based
+         JiveGlobals.migrateProperty("provider.group.className");
+@@ -260,8 +265,7 @@
+         String className = JiveGlobals.getProperty("provider.group.className",
+                 "org.jivesoftware.openfire.group.DefaultGroupProvider");
+         try {
+-            Class c = ClassUtils.forName(className);
+-            provider = (GroupProvider) c.newInstance();
++            provider = StaccatoRuntime.propagateReflection(className, ClassUtils.resolver);
+         }
+         catch (Exception e) {
+             Log.error("Error loading group provider: " + className, e);
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/group/JDBCGroupProvider.java openfire_src/src/java/org/jivesoftware/openfire/group/JDBCGroupProvider.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/group/JDBCGroupProvider.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/group/JDBCGroupProvider.java	2016-03-08 08:41:39.079178766 -0800
+@@ -27,6 +27,7 @@
+ import java.util.ArrayList;
+ import java.util.Collection;
+ import java.util.List;
++import java.util.Set;
+ 
+ import org.jivesoftware.database.DbConnectionManager;
+ import org.jivesoftware.openfire.XMPPServer;
+@@ -35,6 +36,11 @@
+ import org.slf4j.LoggerFactory;
+ import org.xmpp.packet.JID;
+ 
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.StaccatoFieldRepair;
++import edu.washington.cse.instrumentation.runtime.StaccatoRuntime;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++
+ /**
+  * The JDBC group provider allows you to use an external database to define the make up of groups.
+  * It is best used with the JDBCAuthProvider to provide integration between your external system and
+@@ -68,18 +74,18 @@
+  *
+  * @author David Snopek
+  */
+-public class JDBCGroupProvider extends AbstractGroupProvider {
++public class JDBCGroupProvider extends AbstractGroupProvider implements StaccatoFieldRepair {
+ 
+ 	private static final Logger Log = LoggerFactory.getLogger(JDBCGroupProvider.class);
+ 
+-    private String connectionString;
++    private volatile String connectionString;
+ 
+-    private String groupCountSQL;
+-    private String descriptionSQL;
+-    private String allGroupsSQL;
+-    private String userGroupsSQL;
+-    private String loadMembersSQL;
+-    private String loadAdminsSQL;
++    private volatile String groupCountSQL;
++    private volatile String descriptionSQL;
++    private volatile String allGroupsSQL;
++    private volatile String userGroupsSQL;
++    private volatile String loadMembersSQL;
++    private volatile String loadAdminsSQL;
+     private boolean useConnectionProvider;
+ 
+     private XMPPServer server = XMPPServer.getInstance();  
+@@ -122,13 +128,40 @@
+         loadAdminsSQL = JiveGlobals.getProperty("jdbcGroupProvider.loadAdminsSQL");
+     }
+ 
++    @Override
++    public Object __staccato_repair_field(Set<String> failingProps, String fieldName,
++    		Object fieldValue, RuntimeException e) {
++    	if(fieldName.equals("groupCountSQL")) {
++    		return groupCountSQL = JiveGlobals.getProperty("jdbcGroupProvider.groupCountSQL");
++    	} else if(fieldName.equals("allGroupsSQL")) {
++    		return allGroupsSQL = JiveGlobals.getProperty("jdbcGroupProvider.allGroupsSQL");
++    	} else if(fieldName.equals("userGroupsSQL")) {
++    		return userGroupsSQL = JiveGlobals.getProperty("jdbcGroupProvider.userGroupsSQL");
++    	} else if(fieldName.equals("descriptionSQL")) {
++    		return descriptionSQL = JiveGlobals.getProperty("jdbcGroupProvider.descriptionSQL");
++    	} else if(fieldName.equals("loadMembersSQL")) {
++    		return loadMembersSQL = JiveGlobals.getProperty("jdbcGroupProvider.loadMembersSQL");
++    	} else if(fieldName.equals("loadAdminsSQL")) {
++    		return loadAdminsSQL = JiveGlobals.getProperty("jdbcGroupProvider.loadAdminsSQL");
++    	} else if(fieldName.equals("connectionString")) {
++    		return connectionString = JiveGlobals.getProperty("jdbcProvider.connectionString");
++    	} else if(fieldName.equals("useConnectionProvider")) {
++    		return useConnectionProvider = JiveGlobals.getBooleanProperty("jdbcGroupProvider.useConnectionProvider");
++    	} else {
++    		throw e;
++    	}
++    }
++
++	@StaccatoCheck(CheckLevel.STRICT)
+     private Connection getConnection() throws SQLException {
+         if (useConnectionProvider)
+             return DbConnectionManager.getConnection();
+         return DriverManager.getConnection(connectionString);
+     }
+ 
++    @StaccatoCheck(CheckLevel.TRANSACT)
+     public Group getGroup(String name) throws GroupNotFoundException {
++    	StaccatoRuntime.commit(descriptionSQL, connectionString, loadMembersSQL, loadAdminsSQL);
+         String description = null;
+ 
+         Connection con = null;
+@@ -156,7 +189,9 @@
+         return new Group(name, description, members, administrators);
+     }
+ 
++    @StaccatoCheck(CheckLevel.TRANSACT)
+     private Collection<JID> getMembers(String groupName, boolean adminsOnly) {
++    	StaccatoRuntime.commit(connectionString, loadAdminsSQL, loadMembersSQL);
+         List<JID> members = new ArrayList<JID>();
+ 
+         Connection con = null;
+@@ -199,7 +234,9 @@
+         return members;
+     }
+ 
++    @StaccatoCheck(CheckLevel.TRANSACT)
+     public int getGroupCount() {
++    	StaccatoRuntime.commit(groupCountSQL, connectionString);
+         int count = 0;
+         Connection con = null;
+         PreparedStatement pstmt = null;
+@@ -221,7 +258,9 @@
+         return count;
+     }
+ 
++    @StaccatoCheck(CheckLevel.TRANSACT)
+     public Collection<String> getGroupNames() {
++    	StaccatoRuntime.commit(allGroupsSQL, connectionString);
+         List<String> groupNames = new ArrayList<String>();
+         Connection con = null;
+         PreparedStatement pstmt = null;
+@@ -243,7 +282,9 @@
+         return groupNames;
+     }
+ 
++    @StaccatoCheck(CheckLevel.TRANSACT)
+     public Collection<String> getGroupNames(int start, int num) {
++    	StaccatoRuntime.commit(allGroupsSQL, connectionString);
+         List<String> groupNames = new ArrayList<String>();
+         Connection con = null;
+         PreparedStatement pstmt = null;
+@@ -268,7 +309,9 @@
+         return groupNames;
+     }
+ 
++    @StaccatoCheck(CheckLevel.TRANSACT)
+     public Collection<String> getGroupNames(JID user) {
++    	StaccatoRuntime.commit(userGroupsSQL, connectionString);
+         List<String> groupNames = new ArrayList<String>();
+         Connection con = null;
+         PreparedStatement pstmt = null;
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/handler/IQAuthHandler.java openfire_src/src/java/org/jivesoftware/openfire/handler/IQAuthHandler.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/handler/IQAuthHandler.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/handler/IQAuthHandler.java	2016-02-05 13:50:11.000000000 -0800
+@@ -385,8 +385,8 @@
+     }
+ 
+     public void setAllowAnonymous(boolean isAnonymous) throws UnauthorizedException {
++        JiveGlobals.setProperty("xmpp.auth.anonymous", Boolean.toString(isAnonymous));
+         anonymousAllowed = isAnonymous;
+-        JiveGlobals.setProperty("xmpp.auth.anonymous", Boolean.toString(anonymousAllowed));
+     }
+ 
+     @Override
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/handler/IQRegisterHandler.java openfire_src/src/java/org/jivesoftware/openfire/handler/IQRegisterHandler.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/handler/IQRegisterHandler.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/handler/IQRegisterHandler.java	2016-02-05 13:50:11.000000000 -0800
+@@ -451,8 +451,8 @@
+     }
+ 
+     public void setInbandRegEnabled(boolean allowed) {
++        JiveGlobals.setProperty("register.inband", allowed ? "true" : "false");
+         registrationEnabled = allowed;
+-        JiveGlobals.setProperty("register.inband", registrationEnabled ? "true" : "false");
+     }
+ 
+     public boolean canChangePassword() {
+@@ -460,8 +460,8 @@
+     }
+ 
+     public void setCanChangePassword(boolean allowed) {
++        JiveGlobals.setProperty("register.password", allowed ? "true" : "false");
+         canChangePassword = allowed;
+-        JiveGlobals.setProperty("register.password", canChangePassword ? "true" : "false");
+     }
+ 
+     @Override
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/lockout/LockOutManager.java openfire_src/src/java/org/jivesoftware/openfire/lockout/LockOutManager.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/lockout/LockOutManager.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/lockout/LockOutManager.java	2015-12-08 00:38:59.000000000 -0800
+@@ -30,6 +30,9 @@
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ 
++import edu.washington.cse.instrumentation.runtime.StaccatoRuntime;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++
+ /**
+  * The LockOutManager manages the LockOutProvider configured for this server, caches knowledge of
+  * whether accounts are disabled or enabled, and provides a single point of entry for handling
+@@ -75,7 +78,7 @@
+ 
+     /* Cache of locked out accounts */
+     private Cache<String,LockOutFlag> lockOutCache;
+-    private LockOutProvider provider;
++    private volatile LockOutProvider provider;
+ 
+     /**
+      * Constructs a LockOutManager, setting up it's cache, propery listener, and setting up the provider.
+@@ -123,8 +126,7 @@
+         // Check if we need to reset the provider class
+         if (provider == null || !className.equals(provider.getClass().getName())) {
+             try {
+-                Class c = ClassUtils.forName(className);
+-                provider = (LockOutProvider) c.newInstance();
++                provider = StaccatoRuntime.propagateReflection(className, ClassUtils.resolver);
+             }
+             catch (Exception e) {
+                 Log.error("Error loading lockout provider: " + className, e);
+@@ -141,6 +143,7 @@
+      * @return The LockOutFlag instance describing the accounts disabled status or null if user
+      *         account specified is not currently locked out (disabled).
+      */
++    @StaccatoCheck
+     public LockOutFlag getDisabledStatus(String username) {
+         if (username == null) {
+             throw new UnsupportedOperationException("Null username not allowed!");
+@@ -195,6 +198,7 @@
+      * @param endTime When to end the lockout, or null if forever.
+      * @throws UnsupportedOperationException if the provider is readonly.
+      */
++    @StaccatoCheck
+     public void disableAccount(String username, Date startTime, Date endTime) throws UnsupportedOperationException {
+         if (provider.isReadOnly()) {
+             throw new UnsupportedOperationException();
+@@ -217,6 +221,7 @@
+      * @param username User to enable.
+      * @throws UnsupportedOperationException if the provider is readonly.
+      */
++    @StaccatoCheck
+     public void enableAccount(String username) throws UnsupportedOperationException {
+         if (provider.isReadOnly()) {
+             throw new UnsupportedOperationException();
+@@ -239,5 +244,4 @@
+         // Fire event.
+         LockOutEventDispatcher.lockedAccountDenied(username);
+     }
+-
+ }
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/lockout/LockOutProvider.java openfire_src/src/java/org/jivesoftware/openfire/lockout/LockOutProvider.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/lockout/LockOutProvider.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/lockout/LockOutProvider.java	2015-12-08 00:38:59.000000000 -0800
+@@ -18,6 +18,8 @@
+  */
+ package org.jivesoftware.openfire.lockout;
+ 
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoTrack;
++
+ /**
+  * A LockOutProvider handles storage of information about disabled accounts, and requests for
+  * whether an account is currently disabled.  If set read-only, only requests for disabled
+@@ -25,6 +27,7 @@
+  *
+  * @author Daniel Henninger
+  */
++@StaccatoTrack
+ public interface LockOutProvider {
+ 
+     /**
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/OfflineMessageStrategy.java openfire_src/src/java/org/jivesoftware/openfire/OfflineMessageStrategy.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/OfflineMessageStrategy.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/OfflineMessageStrategy.java	2016-03-08 08:39:31.975179667 -0800
+@@ -34,6 +34,11 @@
+ import org.xmpp.packet.Message;
+ import org.xmpp.packet.PacketError;
+ 
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++
++import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
++
+ /**
+  * Controls what is done with offline messages.
+  *
+@@ -60,23 +65,26 @@
+         return quota;
+     }
+ 
++	@StaccatoCheck(CheckLevel.NONE)
+     public void setQuota(int quota) {
+-        OfflineMessageStrategy.quota = quota;
+         JiveGlobals.setProperty("xmpp.offline.quota", Integer.toString(quota));
++      OfflineMessageStrategy.quota = quota;
+     }
+ 
+     public OfflineMessageStrategy.Type getType() {
+         return type;
+     }
+ 
++	@StaccatoCheck(CheckLevel.NONE)
+     public void setType(OfflineMessageStrategy.Type type) {
+         if (type == null) {
+             throw new IllegalArgumentException();
+         }
+-        OfflineMessageStrategy.type = type;
+         JiveGlobals.setProperty("xmpp.offline.type", type.toString());
++        OfflineMessageStrategy.type = type;
+     }
+ 
++	@StaccatoCheck(CheckLevel.STRICT)
+     public void storeOffline(Message message) {
+         if (message != null) {
+             // Do nothing if the message was sent to the server itself, an anonymous user or a non-existent user
+@@ -146,6 +154,7 @@
+         listeners.remove(listener);
+     }
+ 
++	@StaccatoCheck(CheckLevel.STRICT)
+     private boolean underQuota(Message message) {
+         return quota > messageStore.getSize(message.getTo().getNode()) + message.toXML().length();
+     }
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/PrivateStorage.java openfire_src/src/java/org/jivesoftware/openfire/PrivateStorage.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/PrivateStorage.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/PrivateStorage.java	2016-02-05 13:50:11.000000000 -0800
+@@ -97,8 +97,8 @@
+      * @param enabled true if this private store is enabled.
+      */
+     public void setEnabled(boolean enabled) {
+-        this.enabled = enabled;
+         JiveGlobals.setProperty("xmpp.privateStorageEnabled", Boolean.toString(enabled));
++        this.enabled = enabled;
+     }
+ 
+     /**
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/roster/MyRosterItemProvider.java openfire_src/src/java/org/jivesoftware/openfire/roster/MyRosterItemProvider.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/roster/MyRosterItemProvider.java	1969-12-31 16:00:00.000000000 -0800
++++ openfire_src/src/java/org/jivesoftware/openfire/roster/MyRosterItemProvider.java	2015-12-08 00:38:59.000000000 -0800
+@@ -0,0 +1,5 @@
++package org.jivesoftware.openfire.roster;
++
++public class MyRosterItemProvider extends DefaultRosterItemProvider {
++	// don't actually do anything
++}
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/roster/RosterItemProvider.java openfire_src/src/java/org/jivesoftware/openfire/roster/RosterItemProvider.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/roster/RosterItemProvider.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/roster/RosterItemProvider.java	2015-12-08 00:38:59.000000000 -0800
+@@ -5,6 +5,9 @@
+ import org.jivesoftware.openfire.user.UserAlreadyExistsException;
+ import org.jivesoftware.openfire.user.UserNotFoundException;
+ 
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoTrack;
++
++@StaccatoTrack
+ public interface RosterItemProvider {
+ 
+     /**
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/roster/Roster.java openfire_src/src/java/org/jivesoftware/openfire/roster/Roster.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/roster/Roster.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/roster/Roster.java	2016-03-05 20:43:39.578295569 -0800
+@@ -59,6 +59,8 @@
+ import org.xmpp.packet.JID;
+ import org.xmpp.packet.Presence;
+ 
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++
+ /**
+  * <p>A roster is a list of users that the user wishes to know if they are online.</p>
+  * <p>Rosters are similar to buddy groups in popular IM clients. The Roster class is
+@@ -323,6 +325,7 @@
+      * @param persistent True if the new roster item should be persisted to the DB.
+      * @return The newly created roster items ready to be stored by the Roster item's hash table
+      */
++    @StaccatoCheck
+     protected RosterItem provideRosterItem(JID user, String nickname, List<String> groups,
+                                            boolean push, boolean persistent)
+             throws UserAlreadyExistsException, SharedGroupException {
+@@ -375,6 +378,7 @@
+      * @param item the item to update in the roster.
+      * @throws UserNotFoundException If the roster item for the given user doesn't already exist
+      */
++    @StaccatoCheck
+     public void updateRosterItem(RosterItem item) throws UserNotFoundException {
+         // Check if we need to convert an implicit roster item into an explicit one
+         if (implicitFrom.remove(item.getJid().toBareJID()) != null) {
+@@ -440,6 +444,7 @@
+      * @return The roster item being removed or null if none existed
+      * @throws SharedGroupException if the user to remove belongs to a shared group
+      */
++    @StaccatoCheck
+     public RosterItem deleteRosterItem(JID user, boolean doChecking) throws SharedGroupException {
+         // Answer an error if user (i.e. contact) to delete belongs to a shared group
+         RosterItem itemToRemove = rosterItems.get(user.toBareJID());
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/roster/RosterManager.java openfire_src/src/java/org/jivesoftware/openfire/roster/RosterManager.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/roster/RosterManager.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/roster/RosterManager.java	2016-02-05 13:50:11.000000000 -0800
+@@ -20,6 +20,13 @@
+ 
+ package org.jivesoftware.openfire.roster;
+ 
++import java.util.ArrayList;
++import java.util.Collection;
++import java.util.HashSet;
++import java.util.Iterator;
++import java.util.Map;
++import java.util.StringTokenizer;
++
+ import org.jivesoftware.openfire.RoutingTable;
+ import org.jivesoftware.openfire.SharedGroupException;
+ import org.jivesoftware.openfire.XMPPServer;
+@@ -45,7 +52,9 @@
+ import org.xmpp.packet.JID;
+ import org.xmpp.packet.Presence;
+ 
+-import java.util.*;
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.StaccatoRuntime;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
+ 
+ /**
+  * A simple service that allows components to retrieve a roster based solely on the ID
+@@ -104,6 +113,7 @@
+      * @throws org.jivesoftware.openfire.user.UserNotFoundException if the ID does not correspond
+      *         to a known entity on the server.
+      */
++    @StaccatoCheck
+     public Roster getRoster(String username) throws UserNotFoundException {
+         Roster roster = rosterCache.get(username);
+         if (roster == null) {
+@@ -127,6 +137,7 @@
+      *
+      * @param user the user.
+      */
++    @StaccatoCheck
+     public void deleteRoster(JID user) {
+         if (!server.isLocal(user)) {
+             // Ignore request if user is not a local user
+@@ -961,6 +972,7 @@
+         return XMPPServer.getInstance().getRosterManager().provider;
+     }
+ 
++    @StaccatoCheck(CheckLevel.NONE)
+     private void initProvider() {
+         JiveGlobals.migrateProperty("provider.roster.className");
+         String className = JiveGlobals.getProperty("provider.roster.className",
+@@ -968,8 +980,7 @@
+ 
+         if (provider == null || !className.equals(provider.getClass().getName())) {
+             try {
+-                Class c = ClassUtils.forName(className);
+-                provider = (RosterItemProvider) c.newInstance();
++                provider = StaccatoRuntime.propagateReflection(className, ClassUtils.resolver);
+             }
+             catch (Exception e) {
+                 Log.error("Error loading roster provider: " + className, e);
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/security/SecurityAuditManager.java openfire_src/src/java/org/jivesoftware/openfire/security/SecurityAuditManager.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/security/SecurityAuditManager.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/security/SecurityAuditManager.java	2016-02-05 13:50:11.000000000 -0800
+@@ -29,6 +29,8 @@
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ 
++import edu.washington.cse.instrumentation.runtime.StaccatoRuntime;
++
+ /**
+  * The SecurityAuditManager manages the SecurityAuditProvider configured for this server, and provides
+  * a proper conduit for making security log entries and looking them up.  Ideally there is no reason
+@@ -72,7 +74,7 @@
+         return SecurityAuditManagerContainer.instance;
+     }
+ 
+-    private SecurityAuditProvider provider;
++    private volatile SecurityAuditProvider provider;
+ 
+     /**
+      * Constructs a SecurityAuditManager, setting up the provider, and a listener.
+@@ -117,8 +119,7 @@
+         // Check if we need to reset the provider class
+         if (provider == null || !className.equals(provider.getClass().getName())) {
+             try {
+-                Class c = ClassUtils.forName(className);
+-                provider = (SecurityAuditProvider) c.newInstance();
++                provider = StaccatoRuntime.propagateReflection(className, ClassUtils.resolver);
+             }
+             catch (Exception e) {
+                 Log.error("Error loading security audit provider: " + className, e);
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/session/LocalClientSession.java openfire_src/src/java/org/jivesoftware/openfire/session/LocalClientSession.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/session/LocalClientSession.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/session/LocalClientSession.java	2016-02-05 13:50:11.000000000 -0800
+@@ -24,6 +24,7 @@
+ import java.util.HashMap;
+ import java.util.Iterator;
+ import java.util.Map;
++import java.util.Set;
+ import java.util.StringTokenizer;
+ 
+ import org.jivesoftware.openfire.Connection;
+@@ -42,6 +43,7 @@
+ import org.jivesoftware.openfire.user.UserNotFoundException;
+ import org.jivesoftware.util.JiveGlobals;
+ import org.jivesoftware.util.LocaleUtils;
++import org.jivesoftware.util.PropertyTransformer;
+ import org.jivesoftware.util.cache.Cache;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+@@ -52,6 +54,11 @@
+ import org.xmpp.packet.Presence;
+ import org.xmpp.packet.StreamError;
+ 
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.TaintHelper;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++import edu.washington.cse.instrumentation.runtime.containers.StaccatoMap;
++
+ /**
+  * Represents a session between the server and a client.
+  *
+@@ -71,8 +78,8 @@
+      * Note: Key = IP address or IP range; Value = empty string. A hash map is being used for
+      * performance reasons.
+      */
+-    private static Map<String,String> allowedIPs = new HashMap<String,String>();
+-    private static Map<String,String> allowedAnonymIPs = new HashMap<String,String>();
++    private static Map<String,String> allowedIPs = new StaccatoMap<>(new HashMap<String,String>());
++    private static Map<String,String> allowedAnonymIPs = new StaccatoMap<>(new HashMap<String,String>());
+ 
+     private boolean messageCarbonsEnabled;
+ 
+@@ -115,21 +122,23 @@
+      */
+     private String defaultList;
+ 
+-    static {
+-        // Fill out the allowedIPs with the system property
+-        String allowed = JiveGlobals.getProperty("xmpp.client.login.allowed", "");
+-        StringTokenizer tokens = new StringTokenizer(allowed, ", ");
++    private static final PropertyTransformer<Map<String, String>> mapTransformer = new PropertyTransformer<Map<String, String>>() {
++    	@Override
++    	public Map<String, String> transformProperty(String propValue) {
++    		Map<String, String> toRet = new StaccatoMap<>(new HashMap<String, String>());
++    		StringTokenizer tokens = new StringTokenizer(propValue, ", ");
+         while (tokens.hasMoreTokens()) {
+             String address = tokens.nextToken().trim();
+-            allowedIPs.put(address, "");
++                toRet.put(address, "");
+         }
+-        String allowedAnonym = JiveGlobals.getProperty("xmpp.client.login.allowedAnonym", "");
+-        tokens = new StringTokenizer(allowedAnonym, ", ");
+-        while (tokens.hasMoreTokens()) {
+-            String address = tokens.nextToken().trim();
+-            allowedAnonymIPs.put(address, "");
+-
++            return toRet;
+         }
++    };
++    
++    static {
++        // Fill out the allowedIPs with the system property
++        allowedIPs = JiveGlobals.getObjectProperty("xmpp.client.login.allowed", "", mapTransformer);
++		allowedAnonymIPs = JiveGlobals.getObjectProperty("xmpp.client.login.allowedAnonym", "", mapTransformer);
+     }
+ 
+     /**
+@@ -331,6 +340,16 @@
+         return session;
+     }
+ 
++    public static Object __staccato_update_field_static(Set<String> failProps, String fieldName, Object oldVal, RuntimeException e) {
++    	if(fieldName.equals("allowedIPs")) {
++    		System.out.println("Found stale field " + fieldName + " " + e);
++    		return allowedIPs = JiveGlobals.getObjectProperty("xmpp.client.login.allowed", "", mapTransformer);
++    	} else {
++    		throw e;
++    	}
++    }
++    
++    @StaccatoCheck(CheckLevel.STRICT)
+     public static boolean isAllowed(Connection connection) {
+         if (!allowedIPs.isEmpty()) {
+             // The server is using a whitelist so check that the IP address of the client
+@@ -366,22 +385,24 @@
+      * @param allowed the list of IP address that are allowed to connect to the server.
+      */
+     public static void setAllowedIPs(Map<String, String> allowed) {
+-        allowedIPs = allowed;
+-        if (allowedIPs.isEmpty()) {
+-            JiveGlobals.deleteProperty("xmpp.client.login.allowed");
+-        }
+-        else {
++    	Map<String, String> a = new StaccatoMap<>(allowed);
++    	String toSet;
++    	if(a.isEmpty()) {
++    		toSet = new String("");
++    	} else {
+             // Iterate through the elements in the map.
+             StringBuilder buf = new StringBuilder();
+-            Iterator<String> iter = allowedIPs.keySet().iterator();
++            Iterator<String> iter = a.keySet().iterator();
+             if (iter.hasNext()) {
+                 buf.append(iter.next());
+             }
+             while (iter.hasNext()) {
+                 buf.append(", ").append(iter.next());
+             }
+-            JiveGlobals.setProperty("xmpp.client.login.allowed", buf.toString());
++            toSet = buf.toString();
+         }
++    	JiveGlobals.setProperty("xmpp.client.login.allowed", toSet, a);
++    	allowedIPs = a;
+     }
+ 
+     /**
+@@ -391,7 +412,7 @@
+      * @param allowed the list of IP address that are allowed to connect to the server.
+      */
+     public static void setAllowedAnonymIPs(Map<String, String> allowed) {
+-        allowedAnonymIPs = allowed;
++        allowedAnonymIPs = new StaccatoMap<>(allowed);
+         if (allowedAnonymIPs.isEmpty()) {
+             JiveGlobals.deleteProperty("xmpp.client.login.allowedAnonym");
+         }
+@@ -405,7 +426,7 @@
+             while (iter.hasNext()) {
+                 buf.append(", ").append(iter.next());
+             }
+-            JiveGlobals.setProperty("xmpp.client.login.allowedAnonym", buf.toString());
++            JiveGlobals.setProperty("xmpp.client.login.allowedAnonym", buf.toString(), allowedAnonymIPs);
+         }
+     }
+ 
+@@ -469,7 +490,7 @@
+      * @param policy whether compression is optional or is disabled.
+      */
+     public static void setCompressionPolicy(SocketConnection.CompressionPolicy policy) {
+-        JiveGlobals.setProperty("xmpp.client.compression.policy", policy.toString());
++        JiveGlobals.setProperty("xmpp.client.compression.policy", TaintHelper.copyString(policy.toString()));
+     }
+ 
+     /**
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/session/LocalConnectionMultiplexerSession.java openfire_src/src/java/org/jivesoftware/openfire/session/LocalConnectionMultiplexerSession.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/session/LocalConnectionMultiplexerSession.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/session/LocalConnectionMultiplexerSession.java	2016-02-05 13:50:11.000000000 -0800
+@@ -330,8 +330,8 @@
+      * @param policy whether TLS is mandatory, optional or is disabled.
+      */
+     public static void setTLSPolicy(SocketConnection.TLSPolicy policy) {
++        JiveGlobals.setProperty("xmpp.multiplex.tls.policy", policy.toString());
+         tlsPolicy = policy;
+-        JiveGlobals.setProperty("xmpp.multiplex.tls.policy", tlsPolicy.toString());
+     }
+ 
+     /**
+@@ -349,8 +349,8 @@
+      * @param policy whether compression is optional or is disabled.
+      */
+     public static void setCompressionPolicy(SocketConnection.CompressionPolicy policy) {
++        JiveGlobals.setProperty("xmpp.multiplex.compression.policy", policy.toString());
+         compressionPolicy = policy;
+-        JiveGlobals.setProperty("xmpp.multiplex.compression.policy", compressionPolicy.toString());
+     }
+ 
+ }
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/SessionManager.java openfire_src/src/java/org/jivesoftware/openfire/SessionManager.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/SessionManager.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/SessionManager.java	2016-02-05 13:50:11.000000000 -0800
+@@ -1156,8 +1156,8 @@
+     }
+ 
+     public void setConflictKickLimit(int limit) {
++        JiveGlobals.setProperty("xmpp.session.conflict-limit", Integer.toString(limit));
+         conflictLimit = limit;
+-        JiveGlobals.setProperty("xmpp.session.conflict-limit", Integer.toString(conflictLimit));
+     }
+ 
+     private class ClientSessionListener implements ConnectionCloseListener {
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/spi/ConnectionManagerImpl.java openfire_src/src/java/org/jivesoftware/openfire/spi/ConnectionManagerImpl.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/spi/ConnectionManagerImpl.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/spi/ConnectionManagerImpl.java	2016-02-05 13:50:11.000000000 -0800
+@@ -94,6 +94,9 @@
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ 
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++
+ public class ConnectionManagerImpl extends BasicModule implements ConnectionManager, CertificateEventListener {
+ 
+ 	private static final Logger Log = LoggerFactory.getLogger(ConnectionManagerImpl.class);
+@@ -602,6 +605,7 @@
+         return JiveGlobals.getBooleanProperty("xmpp.socket.plain.active", true);
+     }
+ 
++    @StaccatoCheck(CheckLevel.NONE)
+     public void enableClientSSLListener(boolean enabled) {
+         if (enabled == isClientSSLListenerEnabled()) {
+             // Ignore new setting
+@@ -630,6 +634,7 @@
+         }
+     }
+ 
++    @StaccatoCheck(CheckLevel.NONE)
+     public void enableComponentListener(boolean enabled) {
+         if (enabled == isComponentListenerEnabled()) {
+             // Ignore new setting
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/spi/LocalRoutingTable.java openfire_src/src/java/org/jivesoftware/openfire/spi/LocalRoutingTable.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/spi/LocalRoutingTable.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/spi/LocalRoutingTable.java	2015-12-08 00:38:59.000000000 -0800
+@@ -40,6 +40,9 @@
+ import org.slf4j.LoggerFactory;
+ import org.xmpp.packet.JID;
+ 
++import edu.washington.cse.instrumentation.runtime.PropagationTarget;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoPropagate;
++
+ /**
+  * Internal component used by the RoutingTable to keep references to routes hosted by this JVM. When
+  * running in a cluster each cluster member will have its own RoutingTable containing an instance of
+@@ -51,7 +54,6 @@
+ class LocalRoutingTable {
+ 	
+ 	private static final Logger Log = LoggerFactory.getLogger(LocalRoutingTable.class);
+-
+     Map<String, RoutableChannelHandler> routes = new ConcurrentHashMap<String, RoutableChannelHandler>();
+ 
+     /**
+@@ -61,6 +63,7 @@
+      * @param route the route hosted by this node.
+      * @return true if the element was added or false if was already present.
+      */
++    @StaccatoPropagate(PropagationTarget.RECEIVER)
+     boolean addRoute(String address, RoutableChannelHandler route) {
+         return routes.put(address, route) != route;
+     }
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/spi/RoutingTableImpl.java openfire_src/src/java/org/jivesoftware/openfire/spi/RoutingTableImpl.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/spi/RoutingTableImpl.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/spi/RoutingTableImpl.java	2016-02-05 13:50:11.000000000 -0800
+@@ -20,9 +20,27 @@
+ 
+ package org.jivesoftware.openfire.spi;
+ 
++import java.util.ArrayList;
++import java.util.Arrays;
++import java.util.Collection;
++import java.util.Collections;
++import java.util.Comparator;
++import java.util.HashSet;
++import java.util.List;
++import java.util.Map;
++import java.util.Set;
++import java.util.concurrent.locks.Lock;
++
+ import org.dom4j.Element;
+ import org.dom4j.QName;
+-import org.jivesoftware.openfire.*;
++import org.jivesoftware.openfire.IQRouter;
++import org.jivesoftware.openfire.MessageRouter;
++import org.jivesoftware.openfire.PacketException;
++import org.jivesoftware.openfire.PresenceRouter;
++import org.jivesoftware.openfire.RemotePacketRouter;
++import org.jivesoftware.openfire.RoutableChannelHandler;
++import org.jivesoftware.openfire.RoutingTable;
++import org.jivesoftware.openfire.XMPPServer;
+ import org.jivesoftware.openfire.auth.UnauthorizedException;
+ import org.jivesoftware.openfire.carbons.Received;
+ import org.jivesoftware.openfire.cluster.ClusterEventListener;
+@@ -33,17 +51,28 @@
+ import org.jivesoftware.openfire.forward.Forwarded;
+ import org.jivesoftware.openfire.handler.PresenceUpdateHandler;
+ import org.jivesoftware.openfire.server.OutgoingSessionPromise;
+-import org.jivesoftware.openfire.session.*;
++import org.jivesoftware.openfire.session.ClientSession;
++import org.jivesoftware.openfire.session.LocalClientSession;
++import org.jivesoftware.openfire.session.LocalOutgoingServerSession;
++import org.jivesoftware.openfire.session.OutgoingServerSession;
++import org.jivesoftware.openfire.session.RemoteSessionLocator;
+ import org.jivesoftware.util.ConcurrentHashSet;
+ import org.jivesoftware.util.JiveGlobals;
+ import org.jivesoftware.util.cache.Cache;
+ import org.jivesoftware.util.cache.CacheFactory;
++import org.jivesoftware.util.cache.PropertyTrackingCache;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+-import org.xmpp.packet.*;
+-
+-import java.util.*;
+-import java.util.concurrent.locks.Lock;
++import org.xmpp.packet.IQ;
++import org.xmpp.packet.JID;
++import org.xmpp.packet.Message;
++import org.xmpp.packet.Packet;
++import org.xmpp.packet.Presence;
++
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.StaccatoFieldRepair;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoLock;
+ 
+ /**
+  * Routing table that stores routes to client sessions, outgoing server sessions
+@@ -61,7 +90,8 @@
+  *
+  * @author Gaston Dombiak
+  */
+-public class RoutingTableImpl extends BasicModule implements RoutingTable, ClusterEventListener {
++@StaccatoCheck(CheckLevel.STRICT)
++public class RoutingTableImpl extends BasicModule implements RoutingTable, ClusterEventListener, StaccatoFieldRepair {
+ 
+ 	private static final Logger Log = LoggerFactory.getLogger(RoutingTableImpl.class);
+ 	
+@@ -80,6 +110,7 @@
+      * Cache (unlimited, never expire) that holds components connected to the server.
+      * Key: component domain, Value: list of nodeIDs hosting the component
+      */
++    @StaccatoLock
+     private Cache<String, Set<NodeID>> componentsCache;
+     /**
+      * Cache (unlimited, never expire) that holds sessions of user that have authenticated with the server.
+@@ -100,6 +131,7 @@
+ 
+     private String serverName;
+     private XMPPServer server;
++    @StaccatoLock
+     private LocalRoutingTable localRoutingTable;
+     private RemotePacketRouter remotePacketRouter;
+     private IQRouter iqRouter;
+@@ -107,10 +139,11 @@
+     private PresenceRouter presenceRouter;
+     private PresenceUpdateHandler presenceUpdateHandler;
+ 
++    @SuppressWarnings("unchecked")
+     public RoutingTableImpl() {
+         super("Routing table");
+         serversCache = CacheFactory.createCache(S2S_CACHE_NAME);
+-        componentsCache = CacheFactory.createCache(COMPONENT_CACHE_NAME);
++        componentsCache = new PropertyTrackingCache<>(CacheFactory.createCache(COMPONENT_CACHE_NAME));
+         usersCache = CacheFactory.createCache(C2S_CACHE_NAME);
+         anonymousUsersCache = CacheFactory.createCache(ANONYMOUS_C2S_CACHE_NAME);
+         usersSessions = CacheFactory.createCache(C2S_SESSION_NAME);
+@@ -129,8 +162,10 @@
+             lock.unlock();
+         }
+     }
+-
++    @StaccatoCheck(value=CheckLevel.STRICT)
+     public void addComponentRoute(JID route, RoutableChannelHandler destination) {
++    		Object _dummy = localRoutingTable;
++  			_dummy = componentsCache;
+         String address = route.getDomain();
+         localRoutingTable.addRoute(address, destination);
+         Lock lock = CacheFactory.getLock(address, componentsCache);
+@@ -231,7 +266,10 @@
+      * @throws PacketException thrown if the packet is malformed (results in the sender's
+      *      session being shutdown).
+      */
++    @StaccatoCheck(value=CheckLevel.STRICT)
+     public void routePacket(JID jid, Packet packet, boolean fromServer) throws PacketException {
++    		Object _dummy = localRoutingTable;
++  			_dummy = componentsCache;
+         boolean routed = false;
+         if (serverName.equals(jid.getDomain())) {
+         	// Packet sent to our domain.
+@@ -278,6 +316,7 @@
+ 	 * @return <tt>true</tt> if the packet was routed successfully,
+ 	 *         <tt>false</tt> otherwise.
+ 	 */
++    @StaccatoCheck(CheckLevel.STRICT)
+ 	private boolean routeToLocalDomain(JID jid, Packet packet,
+ 			boolean fromServer) {
+ 		boolean routed = false;
+@@ -314,7 +353,11 @@
+                             if (message.getType() == Message.Type.chat && !isPrivate) {
+                                 List<JID> routes = getRoutes(jid.asBareJID(), null);
+                                 for (JID route : routes) {
+-                                    // The receiving server MUST NOT send a forwarded copy to the full JID the original <message/> stanza was addressed to, as that recipient receives the original <message/> stanza.
++									// The receiving server MUST NOT send a
++									// forwarded copy to the full JID the
++									// original <message/> stanza was addressed
++									// to, as that recipient receives the
++									// original <message/> stanza.
+                                     if (!route.equals(jid)) {
+                                         ClientSession clientSession = getClientRoute(route);
+                                         if (clientSession.isMessageCarbonsEnabled()) {
+@@ -325,7 +368,16 @@
+                                             carbon.setFrom(route.asBareJID());
+                                             // and the 'to' attribute MUST be the full JID of the resource receiving the copy
+                                             carbon.setTo(route);
+-                                            // The content of the wrapping message MUST contain a <received/> element qualified by the namespace "urn:xmpp:carbons:2", which itself contains a <forwarded/> element qualified by the namespace "urn:xmpp:forward:0" that contains the original <message/>.
++											// The content of the wrapping
++											// message MUST contain a
++											// <received/> element qualified by
++											// the namespace
++											// "urn:xmpp:carbons:2", which
++											// itself contains a <forwarded/>
++											// element qualified by the
++											// namespace "urn:xmpp:forward:0"
++											// that contains the original
++											// <message/>.
+                                             carbon.addExtension(new Received(new Forwarded(message)));
+ 
+                                             try {
+@@ -377,6 +429,7 @@
+ 	 * @return <tt>true</tt> if the packet was routed successfully,
+ 	 *         <tt>false</tt> otherwise.
+ 	 */
++	@StaccatoCheck(CheckLevel.STRICT)
+ 	private boolean routeToComponent(JID jid, Packet packet,
+ 			boolean routed) {
+ 		if (!hasComponentRoute(jid) 
+@@ -475,6 +528,7 @@
+      * @param fromServer true if the packet was created by the server.
+      * @return true if the specified packet must only be route to available client sessions.
+      */
++	@StaccatoCheck(CheckLevel.STRICT)
+     private boolean routeOnlyAvailable(Packet packet, boolean fromServer) {
+         if (fromServer) {
+             // Packets created by the server (no matter their FROM value) must always be delivered no
+@@ -517,7 +571,7 @@
+      */
+     private boolean routeToBareJID(JID recipientJID, Message packet, boolean isPrivate) {
+         List<ClientSession> sessions = new ArrayList<ClientSession>();
+-        // Get existing AVAILABLE sessions of this user or AVAILABLE to the sender of the packet
++        // Get existing AVAILABLEbut maybe some  sessions of this user or AVAILABLE to the sender of the packet
+         for (JID address : getRoutes(recipientJID, packet.getFrom())) {
+             ClientSession session = getClientRoute(address);
+             if (session != null) {
+@@ -723,6 +777,7 @@
+         return localRoutingTable.getServerRoutes().size();
+     }
+ 
++    @StaccatoCheck(CheckLevel.STRICT)
+     public Collection<String> getComponentsDomains() {
+         return componentsCache.keySet();
+     }
+@@ -742,7 +797,7 @@
+     public boolean hasServerRoute(JID jid) {
+         return serversCache.containsKey(jid.getDomain());
+     }
+-
++    @StaccatoCheck(CheckLevel.STRICT)
+     public boolean hasComponentRoute(JID jid) {
+         return componentsCache.containsKey(jid.getDomain());
+     }
+@@ -865,7 +920,7 @@
+         localRoutingTable.removeRoute(address);
+         return removed;
+     }
+-
++    @StaccatoCheck(CheckLevel.STRICT)
+     public boolean removeComponentRoute(JID route) {
+         String address = route.getDomain();
+         boolean removed = false;
+@@ -975,4 +1030,51 @@
+         }
+     }
+ 
++    private static class RemoveSpec {
++    	final JID oldDomain;
++    	final RoutableChannelHandler toAdd;
++    	public RemoveSpec(JID toRemove, RoutableChannelHandler component) {
++    		this.oldDomain = toRemove;
++    		this.toAdd = component;
++    	}
++    }
++    
++	@Override
++	public Object __staccato_repair_field(Set<String> failingProperties, String field, Object oldField, RuntimeException e) {
++		if(field.equals("localRoutingTable") || field.equals("componentsCache")) {
++			Set<String> newDomainSet = new HashSet<>();
++			Set<String> unchangedSet = new HashSet<>();
++			List<RemoveSpec> components = new ArrayList<>();
++			for(String componentDomain : componentsCache.keySet()) {
++				RoutableChannelHandler component = localRoutingTable.getRoute(componentDomain);
++				// external route
++				if(component == null) {
++					unchangedSet.add(componentDomain);
++					continue;
++				}
++				String cDomain = component.getAddress().getDomain();
++				if(cDomain.equals(componentDomain)) {
++					unchangedSet.add(cDomain);
++					continue;
++				}
++				if(newDomainSet.contains(cDomain)) {
++					throw e;
++				}
++				if(unchangedSet.contains(cDomain)) {
++					throw e;
++				}
++				newDomainSet.add(cDomain);
++				components.add(new RemoveSpec(new JID(null, componentDomain, null), component));
++			}
++			for(RemoveSpec sp : components) {
++				// the old domain will not be overwritten
++				if(!newDomainSet.contains(sp.oldDomain.getDomain())) {
++					removeComponentRoute(sp.oldDomain);
++				}
++				addComponentRoute(sp.toAdd.getAddress(), sp.toAdd);
++			}
++			return oldField;
++		}
++		throw e;
++	}
+ }
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/spi/XMPPServerInfoImpl.java openfire_src/src/java/org/jivesoftware/openfire/spi/XMPPServerInfoImpl.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/spi/XMPPServerInfoImpl.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/spi/XMPPServerInfoImpl.java	2016-02-05 13:50:11.000000000 -0800
+@@ -20,6 +20,10 @@
+ 
+ package org.jivesoftware.openfire.spi;
+ 
++import java.util.Collection;
++import java.util.Collections;
++import java.util.Date;
++
+ import org.jivesoftware.openfire.ConnectionManager;
+ import org.jivesoftware.openfire.ServerPort;
+ import org.jivesoftware.openfire.XMPPServer;
+@@ -27,10 +31,6 @@
+ import org.jivesoftware.util.JiveGlobals;
+ import org.jivesoftware.util.Version;
+ 
+-import java.util.Collection;
+-import java.util.Collections;
+-import java.util.Date;
+-
+ /**
+  * Implements the server info for a basic server. Optimization opportunities
+  * in reusing this object the data is relatively static.
+@@ -87,13 +87,13 @@
+ 
+ 	public void setXMPPDomain(String domainName)
+ 	{
+-        this.xmppDomain = domainName;
+         if (domainName == null) { 
+             JiveGlobals.deleteProperty("xmpp.domain");
+         }
+         else {
+             JiveGlobals.setProperty("xmpp.domain", domainName);
+         }
++        this.xmppDomain = domainName;
+     }
+ 
+     public Date getLastStarted() {
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/user/HybridUserProvider.java openfire_src/src/java/org/jivesoftware/openfire/user/HybridUserProvider.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/user/HybridUserProvider.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/user/HybridUserProvider.java	2016-02-05 13:50:11.000000000 -0800
+@@ -29,6 +29,12 @@
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ 
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.StaccatoFieldRepair;
++import edu.washington.cse.instrumentation.runtime.StaccatoRuntime;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++import edu.washington.cse.instrumentation.runtime.containers.StaccatoList;
++
+ /**
+  * Delegate UserProvider operations among up to three configurable provider implementation classes.
+  *
+@@ -36,12 +42,12 @@
+  * @author Chris Neasbitt
+  * @author Tom Evans
+  */
+-
+-public class HybridUserProvider implements UserProvider {
++@StaccatoCheck(CheckLevel.STRICT)
++public class HybridUserProvider implements UserProvider, StaccatoFieldRepair {
+ 
+ 	private static final Logger Log = LoggerFactory.getLogger(HybridUserProvider.class);
+ 
+-    private List<UserProvider> userproviders = null;
++    private volatile List<UserProvider> userproviders = null;
+ 
+     public HybridUserProvider() {
+ 
+@@ -50,41 +56,36 @@
+ 		JiveGlobals.migrateProperty("hybridUserProvider.secondaryProvider.className");
+ 		JiveGlobals.migrateProperty("hybridUserProvider.tertiaryProvider.className");
+ 
+-        userproviders = new ArrayList<UserProvider>();
++        userproviders = new StaccatoList<>(new ArrayList<UserProvider>());
+ 
+ 		// Load primary, secondary, and tertiary user providers.
+-        String primaryClass = JiveGlobals.getProperty("hybridUserProvider.primaryProvider.className");
+-        if (primaryClass == null) {
+-            Log.error("A primary UserProvider must be specified via openfire.xml or the system properties");
++        if(!loadPrimaryProvider(userproviders)) {
+             return;
+         }
+-        try {
+-            Class c = ClassUtils.forName(primaryClass);
+-            UserProvider primaryProvider = (UserProvider) c.newInstance();
+-            userproviders.add(primaryProvider);
+-            Log.debug("Primary user provider: " + primaryClass);
+-        } catch (Exception e) {
+-            Log.error("Unable to load primary user provider: " + primaryClass +
+-                    ". Users in this provider will be disabled.", e);
+-            return;
++        loadSecondaryProvider(userproviders);
++        loadTertiaryProvider(userproviders);
++        
+         }
++    
++    private void loadSecondaryProvider(List<UserProvider> p) {
+         String secondaryClass = JiveGlobals.getProperty("hybridUserProvider.secondaryProvider.className");
+         if (secondaryClass != null) {
+             try {
+-                Class c = ClassUtils.forName(secondaryClass);
+-                UserProvider secondaryProvider = (UserProvider) c.newInstance();
+-                userproviders.add(secondaryProvider);
++                UserProvider secondaryProvider = StaccatoRuntime.propagateReflection(secondaryClass, ClassUtils.resolver);
++                p.add(secondaryProvider);
+                 Log.debug("Secondary user provider: " + secondaryClass);
+             } catch (Exception e) {
+                 Log.error("Unable to load secondary user provider: " + secondaryClass, e);
+             }
+         }
++    }
++    
++    private void loadTertiaryProvider(List<UserProvider> p) {
+         String tertiaryClass = JiveGlobals.getProperty("hybridUserProvider.tertiaryProvider.className");
+         if (tertiaryClass != null) {
+             try {
+-                Class c = ClassUtils.forName(tertiaryClass);
+-                UserProvider tertiaryProvider = (UserProvider) c.newInstance();
+-                userproviders.add(tertiaryProvider);
++                UserProvider tertiaryProvider = StaccatoRuntime.propagateReflection(tertiaryClass, ClassUtils.resolver);
++                p.add(tertiaryProvider);
+                 Log.debug("Tertiary user provider: " + tertiaryClass);
+             } catch (Exception e) {
+                 Log.error("Unable to load tertiary user provider: " + tertiaryClass, e);
+@@ -92,6 +93,42 @@
+         }
+     }
+ 
++    private boolean loadPrimaryProvider(List<UserProvider> p) {
++    	String primaryClass = JiveGlobals.getProperty("hybridUserProvider.primaryProvider.className");
++        if (primaryClass == null) {
++            Log.error("A primary UserProvider must be specified via openfire.xml or the system properties");
++            return false;
++        }
++        try {
++            UserProvider primaryProvider = StaccatoRuntime.propagateReflection(primaryClass, ClassUtils.resolver);
++            p.add(primaryProvider);
++            Log.debug("Primary user provider: " + primaryClass);
++        } catch (Exception e) {
++            Log.error("Unable to load primary user provider: " + primaryClass +
++                    ". Users in this provider will be disabled.", e);
++            return false;
++        }
++        return true;
++    }
++    
++    
++    
++    @Override
++    public Object __staccato_repair_field(Set<String> failingProps, String fieldName,
++    		Object failingField, RuntimeException e) {
++    	if(fieldName.equals("userproviders")) {
++    		List<UserProvider> toRet = new StaccatoList<>(new ArrayList<UserProvider>());
++    		if(!loadPrimaryProvider(toRet)) {
++    			throw e;
++    		}
++    		loadSecondaryProvider(toRet);
++    		loadTertiaryProvider(toRet);
++    		return userproviders = toRet;
++    	} else {
++    		throw e;
++    	}
++    }
++
+ 
+     public User createUser(String username, String password, String name, String email) throws UserAlreadyExistsException {
+ 
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/user/JDBCUserProvider.java openfire_src/src/java/org/jivesoftware/openfire/user/JDBCUserProvider.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/user/JDBCUserProvider.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/user/JDBCUserProvider.java	2016-03-08 08:40:47.827179129 -0800
+@@ -40,6 +40,11 @@
+ import org.slf4j.LoggerFactory;
+ import org.xmpp.packet.JID;
+ 
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.StaccatoFieldRepair;
++import edu.washington.cse.instrumentation.runtime.StaccatoRuntime;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++
+ /**
+  * The JDBC user provider allows you to use an external database to define the users.
+  * It is best used with the JDBCAuthProvider &amp; JDBCGroupProvider to provide integration
+@@ -77,16 +82,16 @@
+  *
+  * @author Huw Richards huw.richards@gmail.com
+  */
+-public class JDBCUserProvider implements UserProvider {
++public class JDBCUserProvider implements UserProvider, StaccatoFieldRepair {
+ 
+ 	private static final Logger Log = LoggerFactory.getLogger(JDBCUserProvider.class);
+ 
+-	private String connectionString;
++	private volatile String connectionString;
+ 
+-	private String loadUserSQL;
+-	private String userCountSQL;
+-	private String allUsersSQL;
+-	private String searchSQL;
++	private volatile String loadUserSQL;
++	private volatile String userCountSQL;
++	private volatile String allUsersSQL;
++	private volatile String searchSQL;
+ 	private String usernameField;
+ 	private String nameField;
+ 	private String emailField;
+@@ -133,7 +138,27 @@
+ 		emailField = JiveGlobals.getProperty("jdbcUserProvider.emailField");
+ 	}
+ 
++    @Override
++	public Object __staccato_repair_field(Set<String> failingProps, String fieldName, Object fieldValue, RuntimeException arg3) {
++		if(fieldName.equals("connectionString")) {
++			return connectionString = JiveGlobals.getProperty("jdbcProvider.connectionString");
++		} else if(fieldName.equals("loadUserSQL")) {
++			return loadUserSQL = JiveGlobals.getProperty("jdbcUserProvider.loadUserSQL");
++		} else if(fieldName.equals("userCountSQL")) {
++			return userCountSQL = JiveGlobals.getProperty("jdbcUserProvider.userCountSQL");
++		} else if(fieldName.equals("searchSQL")) {
++			return searchSQL = JiveGlobals.getProperty("jdbcUserProvider.searchSQL");
++		} else if(fieldName.equals("allUsersSQL")) {
++			return allUsersSQL = JiveGlobals.getProperty("jdbcUserProvider.allUsersSQL");
++		} else if(fieldName.equals("useConnectionProvider")) {
++      return useConnectionProvider = JiveGlobals.getBooleanProperty("jdbcUserProvider.useConnectionProvider");
++		} else {
++			throw arg3;
++		}
++	}
++    @StaccatoCheck(CheckLevel.TRANSACT)
+ 	public User loadUser(String username) throws UserNotFoundException {
++		StaccatoRuntime.commit(loadUserSQL, connectionString, useConnectionProvider);
+         if(username.contains("@")) {
+             if (!XMPPServer.getInstance().isLocal(new JID(username))) {
+                 throw new UserNotFoundException("Cannot load user of remote server: " + username);
+@@ -175,7 +200,9 @@
+ 		throw new UnsupportedOperationException();
+ 	}
+ 
++	@StaccatoCheck(CheckLevel.TRANSACT)
+ 	public int getUserCount() {
++		StaccatoRuntime.commit(userCountSQL, connectionString, useConnectionProvider);
+ 		int count = 0;
+ 		Connection con = null;
+ 		PreparedStatement pstmt = null;
+@@ -206,7 +233,9 @@
+ 		return getUsernames(0, Integer.MAX_VALUE);
+ 	}
+ 
++	@StaccatoCheck(CheckLevel.TRANSACT)
+ 	private Collection<String> getUsernames(int startIndex, int numResults) {
++		StaccatoRuntime.commit(allUsersSQL, connectionString, useConnectionProvider);
+ 		List<String> usernames = new ArrayList<String>(500);
+ 		Connection con = null;
+ 		PreparedStatement pstmt = null;
+@@ -274,6 +303,7 @@
+ 		throw new UnsupportedOperationException();
+ 	}
+ 
++	@StaccatoCheck(CheckLevel.STRICT)
+     public Set<String> getSearchFields() throws UnsupportedOperationException {
+         if (searchSQL == null) {
+             throw new UnsupportedOperationException();
+@@ -285,9 +315,11 @@
+ 		return findUsers(fields, query, 0, Integer.MAX_VALUE);
+ 	}
+ 
++	@StaccatoCheck(CheckLevel.TRANSACT)
+ 	public Collection<User> findUsers(Set<String> fields, String query, int startIndex,
+             int numResults) throws UnsupportedOperationException
+     {
++		StaccatoRuntime.commit(searchSQL, connectionString, useConnectionProvider);
+ 		if (searchSQL == null) {
+             throw new UnsupportedOperationException();
+         }
+@@ -417,6 +449,7 @@
+         Log.debug(callingMethod + " results: " + sb.toString());
+     }
+ 
++	@StaccatoCheck(CheckLevel.STRICT)
+ 	private Connection getConnection() throws SQLException {
+ 	    if (useConnectionProvider) {
+ 	        return DbConnectionManager.getConnection();
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/user/MyUserProvider.java openfire_src/src/java/org/jivesoftware/openfire/user/MyUserProvider.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/user/MyUserProvider.java	1969-12-31 16:00:00.000000000 -0800
++++ openfire_src/src/java/org/jivesoftware/openfire/user/MyUserProvider.java	2015-12-08 00:38:59.000000000 -0800
+@@ -0,0 +1,5 @@
++package org.jivesoftware.openfire.user;
++
++public class MyUserProvider extends DefaultUserProvider {
++
++}
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/user/UserManager.java openfire_src/src/java/org/jivesoftware/openfire/user/UserManager.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/user/UserManager.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/user/UserManager.java	2016-03-08 08:40:24.503179294 -0800
+@@ -20,9 +20,6 @@
+ 
+ package org.jivesoftware.openfire.user;
+ 
+-import gnu.inet.encoding.Stringprep;
+-import gnu.inet.encoding.StringprepException;
+-
+ import java.util.Collection;
+ import java.util.Collections;
+ import java.util.Iterator;
+@@ -46,12 +43,19 @@
+ import org.xmpp.packet.IQ;
+ import org.xmpp.packet.JID;
+ 
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.StaccatoRuntime;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++import gnu.inet.encoding.Stringprep;
++import gnu.inet.encoding.StringprepException;
++
+ /**
+  * Manages users, including loading, creating and deleting.
+  *
+  * @author Matt Tucker
+  * @see User
+  */
++@StaccatoCheck(CheckLevel.STRICT)
+ public class UserManager implements IQResultListener {
+ 
+ 	private static final Logger Log = LoggerFactory.getLogger(UserManager.class);
+@@ -86,7 +90,7 @@
+     private Cache<String, User> userCache;
+     /** Cache if a local or remote user exists. */
+     private Cache<String, Boolean> remoteUsersCache;
+-    private UserProvider provider;
++    private volatile UserProvider provider;
+ 
+     private UserManager() {
+         // Initialize caches.
+@@ -468,10 +472,9 @@
+         String className = JiveGlobals.getProperty("provider.user.className",
+                 "org.jivesoftware.openfire.user.DefaultUserProvider");
+         // Check if we need to reset the provider class
+-        if (provider == null || !className.equals(provider.getClass().getName())) {
++        if (/*provider == null || !className.equals(provider.getClass().getName())*/ true) {
+             try {
+-                Class c = ClassUtils.forName(className);
+-                provider = (UserProvider) c.newInstance();
++                provider = StaccatoRuntime.propagateReflection(className, ClassUtils.resolver);
+             }
+             catch (Exception e) {
+                 Log.error("Error loading user provider: " + className, e);
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/user/UserProvider.java openfire_src/src/java/org/jivesoftware/openfire/user/UserProvider.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/user/UserProvider.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/user/UserProvider.java	2015-12-08 00:38:59.000000000 -0800
+@@ -24,11 +24,14 @@
+ import java.util.Date;
+ import java.util.Set;
+ 
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoTrack;
++
+ /**
+  * Provider interface for the user system.
+  *
+  * @author Matt Tucker
+  */
++@StaccatoTrack
+ public interface UserProvider {
+ 
+     /**
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/openfire/XMPPServer.java openfire_src/src/java/org/jivesoftware/openfire/XMPPServer.java
+--- openfire_orig/src/java/org/jivesoftware/openfire/XMPPServer.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/openfire/XMPPServer.java	2016-03-05 20:48:15.710824113 -0800
+@@ -38,6 +38,8 @@
+ import java.util.Map;
+ import java.util.TimerTask;
+ import java.util.concurrent.CopyOnWriteArrayList;
++import java.util.concurrent.ExecutorService;
++import java.util.concurrent.Executors;
+ 
+ import org.dom4j.Document;
+ import org.dom4j.io.SAXReader;
+@@ -63,7 +65,25 @@
+ import org.jivesoftware.openfire.filetransfer.DefaultFileTransferManager;
+ import org.jivesoftware.openfire.filetransfer.FileTransferManager;
+ import org.jivesoftware.openfire.filetransfer.proxy.FileTransferProxy;
+-import org.jivesoftware.openfire.handler.*;
++import org.jivesoftware.openfire.handler.IQAuthHandler;
++import org.jivesoftware.openfire.handler.IQBindHandler;
++import org.jivesoftware.openfire.handler.IQEntityTimeHandler;
++import org.jivesoftware.openfire.handler.IQHandler;
++import org.jivesoftware.openfire.handler.IQLastActivityHandler;
++import org.jivesoftware.openfire.handler.IQMessageCarbonsHandler;
++import org.jivesoftware.openfire.handler.IQOfflineMessagesHandler;
++import org.jivesoftware.openfire.handler.IQPingHandler;
++import org.jivesoftware.openfire.handler.IQPrivacyHandler;
++import org.jivesoftware.openfire.handler.IQPrivateHandler;
++import org.jivesoftware.openfire.handler.IQRegisterHandler;
++import org.jivesoftware.openfire.handler.IQRosterHandler;
++import org.jivesoftware.openfire.handler.IQSessionEstablishmentHandler;
++import org.jivesoftware.openfire.handler.IQSharedGroupHandler;
++import org.jivesoftware.openfire.handler.IQTimeHandler;
++import org.jivesoftware.openfire.handler.IQVersionHandler;
++import org.jivesoftware.openfire.handler.IQvCardHandler;
++import org.jivesoftware.openfire.handler.PresenceSubscribeHandler;
++import org.jivesoftware.openfire.handler.PresenceUpdateHandler;
+ import org.jivesoftware.openfire.lockout.LockOutManager;
+ import org.jivesoftware.openfire.mediaproxy.MediaProxyService;
+ import org.jivesoftware.openfire.muc.MultiUserChatManager;
+@@ -990,7 +1010,6 @@
+ 
+         // Shutdown the task engine.
+         TaskEngine.getInstance().shutdown();
+-
+         // hack to allow safe stopping
+         Log.info("Openfire stopped");
+     }
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/util/cache/PropertyTrackingCache.java openfire_src/src/java/org/jivesoftware/util/cache/PropertyTrackingCache.java
+--- openfire_orig/src/java/org/jivesoftware/util/cache/PropertyTrackingCache.java	1969-12-31 16:00:00.000000000 -0800
++++ openfire_src/src/java/org/jivesoftware/util/cache/PropertyTrackingCache.java	2015-12-08 00:38:08.000000000 -0800
+@@ -0,0 +1,126 @@
++package org.jivesoftware.util.cache;
++
++import java.util.Collection;
++import java.util.Map;
++import java.util.Set;
++
++import edu.washington.cse.instrumentation.runtime.PropagationTarget;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoPropagate;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoTrack;
++
++@StaccatoTrack
++public class PropertyTrackingCache<K,V> implements Cache<K,V> {
++	private final Cache<K,V> wrapped;
++	
++	public PropertyTrackingCache(Cache<K, V> wrapped) {
++		this.wrapped = wrapped;
++	}
++	
++	@Override
++	public void clear() {
++		wrapped.clear();
++	}
++
++	@Override
++	public boolean containsKey(Object arg0) {
++		return wrapped.containsKey(arg0);
++	}
++
++	@Override
++	public boolean containsValue(Object arg0) {
++		return wrapped.containsValue(arg0);
++	}
++
++	@Override
++	public Set<java.util.Map.Entry<K, V>> entrySet() {
++		return wrapped.entrySet();
++	}
++
++	@Override
++	public V get(Object arg0) {
++		return wrapped.get(arg0);
++	}
++
++	@Override
++	public boolean isEmpty() {
++		return wrapped.isEmpty();
++	}
++
++	@Override
++	public Set<K> keySet() {
++		return wrapped.keySet();
++	}
++
++	@Override
++	@StaccatoPropagate(PropagationTarget.RECEIVER)
++	public V put(K arg0, V arg1) {
++		return wrapped.put(arg0, arg1);
++	}
++
++	@Override
++	@StaccatoPropagate(PropagationTarget.RECEIVER)
++	public void putAll(Map<? extends K, ? extends V> arg0) {
++		wrapped.putAll(arg0);
++	}
++
++	@Override
++	public V remove(Object arg0) {
++		return wrapped.remove(arg0);
++	}
++
++	@Override
++	public int size() {
++		return wrapped.size();
++	}
++
++	@Override
++	public Collection<V> values() {
++		return wrapped.values();
++	}
++
++	@Override
++	public String getName() {
++		return wrapped.getName();
++	}
++
++	@Override
++	public void setName(String name) {
++		wrapped.setName(name);
++	}
++
++	@Override
++	public long getMaxCacheSize() {
++		return wrapped.getMaxCacheSize();
++	}
++
++	@Override
++	public void setMaxCacheSize(int maxSize) {
++		wrapped.setMaxCacheSize(maxSize);
++	}
++
++	@Override
++	public long getMaxLifetime() {
++		return wrapped.getMaxLifetime();
++	}
++
++	@Override
++	public void setMaxLifetime(long maxLifetime) {
++		wrapped.setMaxLifetime(maxLifetime);
++	}
++
++	@Override
++	public int getCacheSize() {
++		return wrapped.getCacheSize();
++	}
++
++	@Override
++	public long getCacheHits() {
++		return wrapped.getCacheHits();
++	}
++
++	@Override
++	public long getCacheMisses() {
++		return wrapped.getCacheMisses();
++	}
++
++}
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/util/ClassUtils.java openfire_src/src/java/org/jivesoftware/util/ClassUtils.java
+--- openfire_orig/src/java/org/jivesoftware/util/ClassUtils.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/util/ClassUtils.java	2015-12-08 00:38:59.000000000 -0800
+@@ -21,6 +21,8 @@
+ 
+ import java.io.InputStream;
+ 
++import edu.washington.cse.instrumentation.runtime.StaccatoRuntime.ClassResolver;
++
+ /**
+  * A utility class to assist with loading classes or resources by name. Many application servers use
+  * custom classloaders, which will break uses of:
+@@ -36,6 +38,12 @@
+ public class ClassUtils {
+ 
+     private static ClassUtils instance = new ClassUtils();
++    public static ClassResolver resolver = new ClassResolver() {
++		@Override
++		public Class<?> forName(String arg0) throws ClassNotFoundException {
++			return ClassUtils.forName(arg0);
++		}
++	};
+ 
+     /**
+      * Loads the class with the specified name.
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/util/JiveGlobals.java openfire_src/src/java/org/jivesoftware/util/JiveGlobals.java
+--- openfire_orig/src/java/org/jivesoftware/util/JiveGlobals.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/util/JiveGlobals.java	2016-02-05 13:50:11.000000000 -0800
+@@ -41,6 +41,10 @@
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ 
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.TaintHelper;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++
+ /**
+  * Controls Jive properties. Jive properties are only meant to be set and retrieved
+  * by core Jive classes. Some properties may be stored in XML format while others in the
+@@ -55,6 +59,7 @@
+  * XML property names must be in the form <code>prop.name</code> - parts of the name must
+  * be separated by ".". The value can be any valid String, including strings with line breaks.
+  */
++@StaccatoCheck(CheckLevel.NONE)
+ public class JiveGlobals {
+ 
+ 	private static final Logger Log = LoggerFactory.getLogger(JiveGlobals.class);
+@@ -551,6 +556,16 @@
+         return properties.get(name);
+     }
+ 
++    public static <T> T getObjectProperty(String name, String defaultValue, PropertyTransformer<T> transformer) {
++    	if(properties == null) {
++    		if(isSetupMode()) {
++    			return null;
++    		}
++    		properties = JiveProperties.getInstance();
++    	}
++    	return transformer.transformProperty(properties.getProperty(name, defaultValue));
++    }
++    
+     /**
+      * Returns a Jive property. If the specified property doesn't exist, the
+      * <tt>defaultValue</tt> will be returned.
+@@ -566,7 +581,7 @@
+             }
+             properties = JiveProperties.getInstance();
+         }
+-        String value = properties.get(name);
++        String value = properties.getProperty(name, defaultValue);
+         if (value != null) {
+             return value;
+         }
+@@ -585,7 +600,7 @@
+      * @return the property value specified by name or <tt>defaultValue</tt>.
+      */
+     public static int getIntProperty(String name, int defaultValue) {
+-        String value = getProperty(name);
++        String value = getProperty(name, defaultValue + "");
+         if (value != null) {
+             try {
+                 return Integer.parseInt(value);
+@@ -607,7 +622,7 @@
+      * @return the property value specified by name or <tt>defaultValue</tt>.
+      */
+     public static long getLongProperty(String name, long defaultValue) {
+-        String value = getProperty(name);
++        String value = getProperty(name, defaultValue + "");
+         if (value != null) {
+             try {
+                 return Long.parseLong(value);
+@@ -643,7 +658,7 @@
+      *      Otherwise <tt>false</tt> is returned.
+      */
+     public static boolean getBooleanProperty(String name, boolean defaultValue) {
+-        String value = getProperty(name);
++        String value = getProperty(name, defaultValue + "");
+         if (value != null) {
+             return Boolean.valueOf(value);
+         }
+@@ -731,7 +746,12 @@
+             }
+             properties = JiveProperties.getInstance();
+         }
++        TaintHelper.startUpdate(name);
++        try {
+         properties.put(name, value);
++        } finally {
++        	TaintHelper.endUpdate(name);
++        }
+     }
+ 
+    /**
+@@ -751,6 +771,16 @@
+         properties.putAll(propertyMap);
+     }
+ 
++    public static void setProperty(String name, String value, Object... objs) {
++    	if(properties == null) {
++    		if(isSetupMode()) {
++    			return;
++    		}
++    		properties = JiveProperties.getInstance();
++    	}
++    	properties.putWithObject(name, value, objs);
++    }
++
+     /**
+      * Deletes a Jive property. If the property doesn't exist, the method
+      * does nothing. All children of the property will be deleted as well.
+@@ -790,11 +820,12 @@
+      * @return True if the property is considered sensitive, otherwise false
+      */
+     public static boolean isPropertySensitive(String name) {
+-    	
+-    	return name != null && (
++    	return false;
++    	/*return name != null && (
+     			name.toLowerCase().indexOf("passwd") > -1 || 
+                 name.toLowerCase().indexOf("password") > -1 ||
+                 name.toLowerCase().indexOf("cookiekey") > -1);
++        */
+     }
+ 
+ 
+@@ -824,10 +855,10 @@
+     	if (securityProperties == null) {
+     		loadSecurityProperties();
+     	}
+-    	boolean propertyWasChanged;
+-    	if (isPropertyEncrypted(name)) {
++    	boolean propertyWasChanged = false;
++    	if (!encrypt && isPropertyEncrypted(name)) {
+     		propertyWasChanged = securityProperties.removeFromList(ENCRYPTED_PROPERTY_NAMES, name);
+-    	} else {
++    	} else if(encrypt) {
+     		propertyWasChanged = securityProperties.addToList(ENCRYPTED_PROPERTY_NAMES, name);
+     	}
+     	if (propertyWasChanged) {
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/util/JiveProperties.java openfire_src/src/java/org/jivesoftware/util/JiveProperties.java
+--- openfire_orig/src/java/org/jivesoftware/util/JiveProperties.java	2014-05-06 13:58:46.000000000 -0700
++++ openfire_src/src/java/org/jivesoftware/util/JiveProperties.java	2016-02-05 13:50:11.000000000 -0800
+@@ -37,11 +37,16 @@
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ 
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.TaintHelper;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++
+ /**
+  * Retrieves and stores Jive properties. Properties are stored in the database.
+  *
+  * @author Matt Tucker
+  */
++@StaccatoCheck(value=CheckLevel.NONE)
+ public class JiveProperties implements Map<String, String> {
+ 
+ 	private static final Logger Log = LoggerFactory.getLogger(JiveProperties.class);
+@@ -171,15 +176,61 @@
+         return properties.keySet();
+     }
+ 
++    /*private static final String[] props = new String[]{
++    	"jdbcAuthProvider.",
++    	"jdbcUserProvider.",
++    	"jdbcGroupProvider.",
++    	"jdbcProvider.",
++    	"hybridAuthProvider.",
++    	"hybridUserProvider.",
++    	"mediaproxy.serviceName",
++    	"provider.admin.",
++    	"provider.auth",
++    	"provider.roster",
++    	"provider.group",
++    	"provider.user",
++    	"xmpp.proxy.service",
++    	"mediaproxy.externalip",
++    	"xmpp.proxy.externalip",
++    	"xmpp.audit.logdir",
++    	"xmpp.audit.ignore",
++    	"xmpp.client.login.allowed",
++    	"xmpp.client.login.allowedAnonym",
++    	"sasl.approvedRealms"
++    };*/
++    
++    private boolean taintKey(Object key) {
++    	if(!(key instanceof String)) {
++    		return false;
++    	}
++    	return true;
++    	/*String strKey = (String)key;
++    	for(String str : props) {
++    		if(strKey.startsWith(str)) {
++    			return true;
++    		}
++    	}
++    	return false;*/
++    }
++
+     public String remove(Object key) {
+         String value;
++        boolean useTaint = taintKey(key);
+         synchronized (this) {
++        	if(!useTaint) {
+             value = properties.remove(key);
++        	} else {
++        		value = TaintHelper.deleteProp((String)key, properties);
++        	}
+             // Also remove any children.
+             Collection<String> propNames = getPropertyNames();
+             for (String name : propNames) {
+                 if (name.startsWith((String)key)) {
++                	if(!useTaint) {
+                     properties.remove(name);
++                	} else {
++                		TaintHelper.deleteProp(name, properties);
++                	}
+                 }
+             }
+             deleteProperty((String)key);
+@@ -210,6 +261,47 @@
+         PropertyEventDispatcher.dispatchEvent(key, PropertyEventDispatcher.EventType.property_deleted, params);
+     }
+ 
++
++	public String putWithObject(String key, String value, Object[] objs) {
++		if(value == null) {
++			throw new RuntimeException("Cannot set null values for object association");
++		}
++		if(key == null) {
++			throw new NullPointerException("Key cannot be null.");
++		}
++		if (key.endsWith(".")) {
++        key = key.substring(0, key.length()-1);
++    }
++    key = key.trim();
++    String result;
++    boolean useTaint = taintKey(key);
++    synchronized (this) {
++        if (properties.containsKey(key)) {
++            if (!properties.get(key).equals(value)) {
++                updateProperty(key, value);
++            }
++        }
++        else {
++            insertProperty(key, value);
++        }
++        if(!useTaint) {
++        	result = properties.put(key, value);
++        } else {
++        	result = TaintHelper.setNewProp(key, value, properties, objs);
++        }
++    }
++
++    // Generate event.
++    Map<String, Object> params = new HashMap<String, Object>();
++    params.put("value", value);
++    PropertyEventDispatcher.dispatchEvent(key, PropertyEventDispatcher.EventType.property_set, params);
++
++    // Send update to other cluster members.
++    CacheFactory.doClusterTask(PropertyClusterEventTask.createPutTask(key, value));
++
++    return result;
++	}
++
+     public String put(String key, String value) {
+         if (value == null) {
+             // This is the same as deleting, so remove it.
+@@ -224,6 +316,7 @@
+         }
+         key = key.trim();
+         String result;
++        boolean useTaint = taintKey(key);
+         synchronized (this) {
+             if (properties.containsKey(key)) {
+                 if (!properties.get(key).equals(value)) {
+@@ -233,8 +326,11 @@
+             else {
+                 insertProperty(key, value);
+             }
+-
++            if(!useTaint) {
+             result = properties.put(key, value);
++            } else {
++            	result = TaintHelper.setNewProp(key, value, properties);
++            }
+         }
+ 
+         // Generate event.
+@@ -258,13 +354,7 @@
+     }
+ 
+     public String getProperty(String name, String defaultValue) {
+-        String value = properties.get(name);
+-        if (value != null) {
+-            return value;
+-        }
+-        else {
+-            return defaultValue;
+-        }
++    	return TaintHelper.getProp(name, properties, defaultValue);
+     }
+ 
+     public boolean getBooleanProperty(String name) {
+@@ -341,6 +431,7 @@
+         Connection con = null;
+         PreparedStatement pstmt = null;
+         ResultSet rs = null;
++        TaintHelper.pauseWriteRecord();
+         try {
+             con = DbConnectionManager.getConnection();
+             pstmt = con.prepareStatement(LOAD_PROPERTIES);
+@@ -356,7 +447,12 @@
+                     	value = null;
+                 	}
+                 }
+-                if (value != null) { 
++                if(value == null) {
++                	continue;
++                }
++                if(taintKey(name)) {
++                	TaintHelper.setNewProp(name, value, properties);
++                } else { 
+                 	properties.put(name, value); 
+                 }
+             }
+@@ -365,6 +461,7 @@
+             Log.error(e.getMessage(), e);
+         }
+         finally {
++        	TaintHelper.unpauseWriteRecord();
+             DbConnectionManager.closeConnection(rs, pstmt, con);
+         }
+     }
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/java/org/jivesoftware/util/PropertyTransformer.java openfire_src/src/java/org/jivesoftware/util/PropertyTransformer.java
+--- openfire_orig/src/java/org/jivesoftware/util/PropertyTransformer.java	1969-12-31 16:00:00.000000000 -0800
++++ openfire_src/src/java/org/jivesoftware/util/PropertyTransformer.java	2015-12-08 00:38:07.000000000 -0800
+@@ -0,0 +1,9 @@
++package org.jivesoftware.util;
++
++import edu.washington.cse.instrumentation.runtime.PropagationTarget;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoPropagate;
++
++public interface PropertyTransformer<T> {
++	@StaccatoPropagate(PropagationTarget.RETURN) 
++	public T transformProperty(String propValue);
++}
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b openfire_orig/src/web/server-properties.jsp openfire_src/src/web/server-properties.jsp
+--- openfire_orig/src/web/server-properties.jsp	2014-05-06 13:58:44.000000000 -0700
++++ openfire_src/src/web/server-properties.jsp	2015-12-08 00:38:59.000000000 -0800
+@@ -408,8 +408,8 @@
+             <fmt:message key="server.properties.encryption" />:
+         </td>
+         <td>
+-            <input type="radio" name="encrypt" value="true" <%= JiveGlobals.isPropertyEncrypted(propName) ? "checked" : "" %> /><fmt:message key="server.properties.encrypt_property_true"/><br/>
+-            <input type="radio" name="encrypt" value="false" <%= JiveGlobals.isPropertyEncrypted(propName) ? "" : "checked" %>/><fmt:message key="server.properties.encrypt_property_false"/>
++            <input type="radio" name="encrypt" value="true" /><fmt:message key="server.properties.encrypt_property_true"/><br/>
++            <input type="radio" name="encrypt" value="false" checked="checked"/><fmt:message key="server.properties.encrypt_property_false"/>
+         </td>
+     </tr>
+ </tbody>

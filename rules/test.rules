@@ -1,0 +1,3 @@
+#include rt.rules
+
+!edu.washington.cse.instrument.test.PropUser:doThing

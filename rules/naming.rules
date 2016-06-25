@@ -1,0 +1,9 @@
+#include string.rules
+
++java.util.Hashtable
+<javax.naming.Context:lookup(Ljava/lang/String;)Ljava/lang/Object;>
+<javax.naming.directory.InitialDirContext:InitialDirContext(Ljava/util/Hashtable;)V>
+!!javax.naming.directory.DirContext:getAttributes
+!!javax.naming.directory.DirContext:getSchema
+!!javax.naming.directory.DirContext:search
+!!javax.naming.Context:lookup

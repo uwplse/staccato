@@ -1,0 +1,7 @@
+project: subsonic
+project_dir: "$thisdir"
+test: "$thisdir/ss_test2.jmx"
+havoc: "$thisdir/ss_havoc.jmx"
+test_impl: "JMeterTest"
+havoc_iter: 75
+test_iter: 150

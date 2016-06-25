@@ -1,0 +1,7 @@
+<org.acegisecurity.ldap.DefaultInitialDirContextFactory:DefaultInitialDirContextFactory>
+^<org.acegisecurity.ldap.DefaultInitialDirContextFactory:setManagerDn>
+^<org.acegisecurity.ldap.DefaultInitialDirContextFactory:setManagerPassword>
+<org.acegisecurity.ldap.search.FilterBasedLdapUserSearch:FilterBasedLdapUserSearch>
+<org.acegisecurity.providers.ldap.authenticator.BindAuthenticator:BindAuthenticator>
+^<org.acegisecurity.providers.ldap.authenticator.AbstractLdapAuthenticator:setUserSearch>
+#include string.rules

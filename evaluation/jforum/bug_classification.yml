@@ -1,0 +1,15 @@
+- props: forum.page.title
+  type: consistency
+- props: forum.link
+  type: consistency
+- props: encoding
+  type: consistency
+- props: '$$StaccatoGroup-1'
+  type: consistency
+  name: "Mail Password"
+- props: rss.enabled
+  type: false positive
+- props: mail.smtp.host
+  type: consistency
+- props: html.tags.welcome
+  type: stale

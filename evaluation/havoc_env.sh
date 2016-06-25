@@ -1,0 +1,2 @@
+JAVA_OPTS="$JAVA_OPTS"" -Xbootclasspath/p:/opt/tomcat/tomcat7/phosphor.jar:/opt/tomcat/tomcat7/staccato.jar -javaagent:/opt/tomcat/tomcat7/phosphor.jar -Xmx256m -Dstaccato.lin-groups='LocaleLanguage,LocaleCountry,LocaleVariant;mail.smtp.username,mail.smtp.password' -Dstaccato.ignored-props=SettingsChanged,LastScanned -Dstaccato.config-as-taint=false -Dstaccato.record=true -Dstaccato.logfile=/tmp/staccato.log -Dstaccato.random-pause=true"
+JAVA_HOME="/opt/jvm/jvm-inst"

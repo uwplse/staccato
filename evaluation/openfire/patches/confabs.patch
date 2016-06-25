@@ -1,0 +1,475 @@
+diff --git a/src/java/org/jivesoftware/openfire/audit/spi/AuditManagerImpl.java b/src/java/org/jivesoftware/openfire/audit/spi/AuditManagerImpl.java
+index 69f278e..e8be91a 100644
+--- a/src/java/org/jivesoftware/openfire/audit/spi/AuditManagerImpl.java
++++ b/src/java/org/jivesoftware/openfire/audit/spi/AuditManagerImpl.java
+@@ -255,6 +255,21 @@ public class AuditManagerImpl extends BasicModule implements AuditManager {
+     // Basic module methods
+     // #########################################################################
+ 
++    private static PropertyTransformer<List<String>> lt = new PropertyTransformer<List<String>>(){
++    	@Override
++    	@StaccatoPropagate(PropagationTarget.RETURN)
++
++    	public List<String> transformProperty(String propValue) {
++    		List<String> toRet = new StaccatoList<>(new ArrayList<String>());
++            StringTokenizer tokenizer = new StringTokenizer(propValue, ", ");
++            while (tokenizer.hasMoreTokens()) {
++                String username = tokenizer.nextToken();
++                toRet.add(username);
++            }
++            return toRet;
++    	}
++    };
++    
+     @Override
+ 	public void initialize(XMPPServer server) {
+         super.initialize(server);
+@@ -274,13 +289,7 @@ public class AuditManagerImpl extends BasicModule implements AuditManager {
+         logTimeout = JiveGlobals.getIntProperty("xmpp.audit.logtimeout", DEFAULT_LOG_TIMEOUT);
+         logDir = JiveGlobals.getProperty("xmpp.audit.logdir", JiveGlobals.getHomeDirectory() +
+                 File.separator + "logs");
+-        String ignoreString = JiveGlobals.getProperty("xmpp.audit.ignore", "");
+-        // Decode the ignore list
+-        StringTokenizer tokenizer = new StringTokenizer(ignoreString, ", ");
+-        while (tokenizer.hasMoreTokens()) {
+-            String username = tokenizer.nextToken();
+-            ignoreList.add(username);
+-        }
++        ignoreList = JiveGlobals.getObjectProperty("xmpp.audit.ignore", "", lt);
+ 
+         auditor = new AuditorImpl(this);
+         auditor.setMaxValues(maxTotalSize, maxFileSize, maxDays);
+diff --git a/src/java/org/jivesoftware/openfire/auth/DefaultAuthorizationMapping.java b/src/java/org/jivesoftware/openfire/auth/DefaultAuthorizationMapping.java
+index eafaae4..2741731 100644
+--- a/src/java/org/jivesoftware/openfire/auth/DefaultAuthorizationMapping.java
++++ b/src/java/org/jivesoftware/openfire/auth/DefaultAuthorizationMapping.java
+@@ -46,18 +46,22 @@ public class DefaultAuthorizationMapping implements AuthorizationMapping {
+ 
+ 	private static final Logger Log = LoggerFactory.getLogger(DefaultAuthorizationMapping.class);
+ 	
+-    private volatile StaccatoList<String> approvedRealms;
+-
+-    public DefaultAuthorizationMapping() {
+-        approvedRealms = new Vector<String>();
+-        
+-        String realmList = JiveGlobals.getProperty("sasl.approvedRealms");
+-        if(realmList != null) {
+-            StringTokenizer st = new StringTokenizer(realmList, " ,\t\n\r\f");
++	static final PropertyTransformer<StaccatoList<String>> arTransform = new PropertyTransformer<StaccatoList<String>>() {
++		@Override
++		public StaccatoList<String> transformProperty(String arg0) {
++			StaccatoList<String> toRet = new StaccatoList<>(new Vector<String>());
++			StringTokenizer st = new StringTokenizer(arg0, " ,\t\n\r\f");
+ 			while(st.hasMoreTokens()) {
+-                approvedRealms.add(st.nextToken());
++				toRet.add(st.nextToken());
+ 			}
++			return toRet;
+ 		}
++	};
++
++    private volatile StaccatoList<String> approvedRealms;
++
++    public DefaultAuthorizationMapping() {
++        approvedRealms = JiveGlobals.getObjectProperty("sasl.approvedRealms", "", arTransform);
+     }
+ 
+     /**
+diff --git a/src/java/org/jivesoftware/openfire/auth/DefaultAuthorizationPolicy.java b/src/java/org/jivesoftware/openfire/auth/DefaultAuthorizationPolicy.java
+index 15b17ce..f6dd601 100644
+--- a/src/java/org/jivesoftware/openfire/auth/DefaultAuthorizationPolicy.java
++++ b/src/java/org/jivesoftware/openfire/auth/DefaultAuthorizationPolicy.java
+@@ -68,15 +68,7 @@ public class DefaultAuthorizationPolicy implements AuthorizationPolicy {
+     private volatile StaccatoList<String> approvedRealms;
+ 
+     public DefaultAuthorizationPolicy() {
+-        approvedRealms = new Vector<String>();
+-        
+-        String realmList = JiveGlobals.getProperty("sasl.approvedRealms");
+-        if(realmList != null) {
+-            StringTokenizer st = new StringTokenizer(realmList, " ,\t\n\r\f");
+-            while(st.hasMoreTokens()) {
+-                approvedRealms.add(st.nextToken());
+-            }
+-        }
++        approvedRealms = JiveGlobals.getObjectProperty("sasl.approvedRealms", "", DefaultAuthorizationMapping.arTransform);
+     }
+ 
+     /**
+diff --git a/src/java/org/jivesoftware/openfire/session/LocalClientSession.java b/src/java/org/jivesoftware/openfire/session/LocalClientSession.java
+index c2f5f10..9315edb 100644
+--- a/src/java/org/jivesoftware/openfire/session/LocalClientSession.java
++++ b/src/java/org/jivesoftware/openfire/session/LocalClientSession.java
+@@ -122,21 +122,23 @@ public class LocalClientSession extends LocalSession implements ClientSession {
+      */
+     private String defaultList;
+ 
+-    static {
+-        // Fill out the allowedIPs with the system property
+-        String allowed = JiveGlobals.getProperty("xmpp.client.login.allowed", "");
+-        StringTokenizer tokens = new StringTokenizer(allowed, ", ");
++    private static final PropertyTransformer<Map<String, String>> mapTransformer = new PropertyTransformer<Map<String, String>>() {
++    	@Override
++    	public Map<String, String> transformProperty(String propValue) {
++    		Map<String, String> toRet = new StaccatoMap<>(new HashMap<String, String>());
++    		StringTokenizer tokens = new StringTokenizer(propValue, ", ");
+             while (tokens.hasMoreTokens()) {
+                 String address = tokens.nextToken().trim();
+-            allowedIPs.put(address, "");
++                toRet.put(address, "");
+             }
+-        String allowedAnonym = JiveGlobals.getProperty("xmpp.client.login.allowedAnonym", "");
+-        tokens = new StringTokenizer(allowedAnonym, ", ");
+-        while (tokens.hasMoreTokens()) {
+-            String address = tokens.nextToken().trim();
+-            allowedAnonymIPs.put(address, "");
+-
++            return toRet;
+     	}
++    };
++    
++    static {
++        // Fill out the allowedIPs with the system property
++        allowedIPs = JiveGlobals.getObjectProperty("xmpp.client.login.allowed", "", mapTransformer);
++		allowedAnonymIPs = JiveGlobals.getObjectProperty("xmpp.client.login.allowedAnonym", "", mapTransformer);
+     }
+ 
+     /**
+@@ -373,22 +375,24 @@ public class LocalClientSession extends LocalSession implements ClientSession {
+      * @param allowed the list of IP address that are allowed to connect to the server.
+      */
+     public static void setAllowedIPs(Map<String, String> allowed) {
+-        allowedIPs = allowed;
+-        if (allowedIPs.isEmpty()) {
+-            JiveGlobals.deleteProperty("xmpp.client.login.allowed");
+-        }
+-        else {
++    	Map<String, String> a = new StaccatoMap<>(allowed);
++    	String toSet;
++    	if(a.isEmpty()) {
++    		toSet = new String("");
++    	} else {
+     		// Iterate through the elements in the map.
+             StringBuilder buf = new StringBuilder();
+-            Iterator<String> iter = allowedIPs.keySet().iterator();
++            Iterator<String> iter = a.keySet().iterator();
+             if (iter.hasNext()) {
+                 buf.append(iter.next());
+             }
+             while (iter.hasNext()) {
+                 buf.append(", ").append(iter.next());
+             }
+-            JiveGlobals.setProperty("xmpp.client.login.allowed", buf.toString());
++            toSet = buf.toString();
+     	}
++    	JiveGlobals.setProperty("xmpp.client.login.allowed", toSet, a);
++    	allowedIPs = a;
+     }
+ 
+     /**
+diff --git a/src/java/org/jivesoftware/util/ClassUtils.java b/src/java/org/jivesoftware/util/ClassUtils.java
+index 4a5b4e9..3ec06bf 100644
+--- a/src/java/org/jivesoftware/util/ClassUtils.java
++++ b/src/java/org/jivesoftware/util/ClassUtils.java
+@@ -38,6 +38,12 @@ import edu.washington.cse.instrumentation.runtime.StaccatoRuntime.ClassResolver;
+ public class ClassUtils {
+ 
+     private static ClassUtils instance = new ClassUtils();
++    public static ClassResolver resolver = new ClassResolver() {
++		@Override
++		public Class<?> forName(String arg0) throws ClassNotFoundException {
++			return ClassUtils.forName(arg0);
++		}
++	};
+ 
+     /**
+      * Loads the class with the specified name.
+diff --git a/src/java/org/jivesoftware/util/JiveGlobals.java b/src/java/org/jivesoftware/util/JiveGlobals.java
+index e5f58ec..b6d8c6c 100644
+--- a/src/java/org/jivesoftware/util/JiveGlobals.java
++++ b/src/java/org/jivesoftware/util/JiveGlobals.java
+@@ -555,6 +555,16 @@ public class JiveGlobals {
+         return properties.get(name);
+     }
+     
++    public static <T> T getObjectProperty(String name, String defaultValue, PropertyTransformer<T> transformer) {
++    	if(properties == null) {
++    		if(isSetupMode()) {
++    			return null;
++    		}
++    		properties = JiveProperties.getInstance();
++    	}
++    	return transformer.transformProperty(properties.getProperty(name, defaultValue));
++    }
++    
+     /**
+      * Returns a Jive property. If the specified property doesn't exist, the
+      * <tt>defaultValue</tt> will be returned.
+@@ -570,7 +580,7 @@ public class JiveGlobals {
+             }
+             properties = JiveProperties.getInstance();
+         }
+-        String value = properties.get(name);
++        String value = properties.getProperty(name, defaultValue);
+         if (value != null) {
+             return value;
+         }
+@@ -589,7 +599,7 @@ public class JiveGlobals {
+      * @return the property value specified by name or <tt>defaultValue</tt>.
+      */
+     public static int getIntProperty(String name, int defaultValue) {
+-        String value = getProperty(name);
++        String value = getProperty(name, defaultValue + "");
+         if (value != null) {
+             try {
+                 return Integer.parseInt(value);
+@@ -611,7 +621,7 @@ public class JiveGlobals {
+      * @return the property value specified by name or <tt>defaultValue</tt>.
+      */
+     public static long getLongProperty(String name, long defaultValue) {
+-        String value = getProperty(name);
++        String value = getProperty(name, defaultValue + "");
+         if (value != null) {
+             try {
+                 return Long.parseLong(value);
+@@ -647,7 +657,7 @@ public class JiveGlobals {
+      *      Otherwise <tt>false</tt> is returned.
+      */
+     public static boolean getBooleanProperty(String name, boolean defaultValue) {
+-        String value = getProperty(name);
++        String value = getProperty(name, defaultValue + "");
+         if (value != null) {
+             return Boolean.valueOf(value);
+         }
+@@ -735,7 +745,12 @@ public class JiveGlobals {
+             }
+             properties = JiveProperties.getInstance();
+         }
++        TaintHelper.startUpdate(name);
++        try {
+         	properties.put(name, value);
++        } finally {
++        	TaintHelper.endUpdate(name);
++        }
+     }
+ 
+    /**
+@@ -755,6 +770,16 @@ public class JiveGlobals {
+         properties.putAll(propertyMap);
+     }
+     
++    public static void setProperty(String name, String value, Object... objs) {
++    	if(properties == null) {
++    		if(isSetupMode()) {
++    			return;
++    		}
++    		properties = JiveProperties.getInstance();
++    	}
++    	properties.putWithObject(name, value, objs);
++    }
++
+     /**
+      * Deletes a Jive property. If the property doesn't exist, the method
+      * does nothing. All children of the property will be deleted as well.
+@@ -794,11 +819,12 @@ public class JiveGlobals {
+      * @return True if the property is considered sensitive, otherwise false
+      */
+     public static boolean isPropertySensitive(String name) {
+-    	
+-    	return name != null && (
++    	return false;
++    	/*return name != null && (
+     			name.toLowerCase().indexOf("passwd") > -1 || 
+                 name.toLowerCase().indexOf("password") > -1 ||
+                 name.toLowerCase().indexOf("cookiekey") > -1);
++        */
+     }
+ 
+ 
+@@ -828,10 +854,10 @@ public class JiveGlobals {
+     	if (securityProperties == null) {
+     		loadSecurityProperties();
+     	}
+-    	boolean propertyWasChanged;
+-    	if (isPropertyEncrypted(name)) {
++    	boolean propertyWasChanged = false;
++    	if (!encrypt && isPropertyEncrypted(name)) {
+     		propertyWasChanged = securityProperties.removeFromList(ENCRYPTED_PROPERTY_NAMES, name);
+-    	} else {
++    	} else if(encrypt) {
+     		propertyWasChanged = securityProperties.addToList(ENCRYPTED_PROPERTY_NAMES, name);
+     	}
+     	if (propertyWasChanged) {
+diff --git a/src/java/org/jivesoftware/util/JiveProperties.java b/src/java/org/jivesoftware/util/JiveProperties.java
+index 06ee567..8e65b35 100644
+--- a/src/java/org/jivesoftware/util/JiveProperties.java
++++ b/src/java/org/jivesoftware/util/JiveProperties.java
+@@ -46,6 +46,7 @@ import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
+  *
+  * @author Matt Tucker
+  */
++@StaccatoCheck(value=CheckLevel.NONE)
+ public class JiveProperties implements Map<String, String> {
+ 
+ 	private static final Logger Log = LoggerFactory.getLogger(JiveProperties.class);
+@@ -175,15 +176,31 @@ public class JiveProperties implements Map<String, String> {
+         return properties.keySet();
+     }
+     
++    private boolean taintKey(Object key) {
++    	if(!(key instanceof String)) {
++    		return false;
++    	}
++    	return true;
++    }
++
+     public String remove(Object key) {
+         String value;
++        boolean useTaint = taintKey(key);
+         synchronized (this) {
++        	if(!useTaint) {
+         		value = properties.remove(key);
++        	} else {
++        		value = TaintHelper.deleteProp((String)key, properties);
++        	}
+             // Also remove any children.
+             Collection<String> propNames = getPropertyNames();
+             for (String name : propNames) {
+                 if (name.startsWith((String)key)) {
++                	if(!useTaint) {
+                 		properties.remove(name);
++                	} else {
++                		TaintHelper.deleteProp(name, properties);
++                	}
+                 }
+             }
+             deleteProperty((String)key);
+@@ -214,6 +231,47 @@ public class JiveProperties implements Map<String, String> {
+         PropertyEventDispatcher.dispatchEvent(key, PropertyEventDispatcher.EventType.property_deleted, params);
+     }
+     
++
++	public String putWithObject(String key, String value, Object[] objs) {
++		if(value == null) {
++			throw new RuntimeException("Cannot set null values for object association");
++		}
++		if(key == null) {
++			throw new NullPointerException("Key cannot be null.");
++		}
++		if (key.endsWith(".")) {
++        key = key.substring(0, key.length()-1);
++    }
++    key = key.trim();
++    String result;
++    boolean useTaint = taintKey(key);
++    synchronized (this) {
++        if (properties.containsKey(key)) {
++            if (!properties.get(key).equals(value)) {
++                updateProperty(key, value);
++            }
++        }
++        else {
++            insertProperty(key, value);
++        }
++        if(!useTaint) {
++        	result = properties.put(key, value);
++        } else {
++        	result = TaintHelper.setNewProp(key, value, properties, objs);
++        }
++    }
++
++    // Generate event.
++    Map<String, Object> params = new HashMap<String, Object>();
++    params.put("value", value);
++    PropertyEventDispatcher.dispatchEvent(key, PropertyEventDispatcher.EventType.property_set, params);
++
++    // Send update to other cluster members.
++    CacheFactory.doClusterTask(PropertyClusterEventTask.createPutTask(key, value));
++
++    return result;
++	}
++
+     public String put(String key, String value) {
+         if (value == null) {
+             // This is the same as deleting, so remove it.
+@@ -228,6 +286,7 @@ public class JiveProperties implements Map<String, String> {
+         }
+         key = key.trim();
+         String result;
++        boolean useTaint = taintKey(key);
+         synchronized (this) {
+             if (properties.containsKey(key)) {
+                 if (!properties.get(key).equals(value)) {
+@@ -237,8 +296,11 @@ public class JiveProperties implements Map<String, String> {
+             else {
+                 insertProperty(key, value);
+             }
+-
++            if(!useTaint) {
+             	result = properties.put(key, value);
++            } else {
++            	result = TaintHelper.setNewProp(key, value, properties);
++            }
+         }
+ 
+         // Generate event.
+@@ -262,13 +324,7 @@ public class JiveProperties implements Map<String, String> {
+     }
+ 
+     public String getProperty(String name, String defaultValue) {
+-        String value = properties.get(name);
+-        if (value != null) {
+-            return value;
+-        }
+-        else {
+-            return defaultValue;
+-        }
++    	return TaintHelper.getProp(name, properties, defaultValue);
+     }
+ 
+     public boolean getBooleanProperty(String name) {
+@@ -345,6 +401,7 @@ public class JiveProperties implements Map<String, String> {
+         Connection con = null;
+         PreparedStatement pstmt = null;
+         ResultSet rs = null;
++        TaintHelper.pauseWriteRecord();
+         try {
+             con = DbConnectionManager.getConnection();
+             pstmt = con.prepareStatement(LOAD_PROPERTIES);
+@@ -360,7 +417,12 @@ public class JiveProperties implements Map<String, String> {
+                     	value = null;
+                 	}
+                 }
+-                if (value != null) { 
++                if(value == null) {
++                	continue;
++                }
++                if(taintKey(name)) {
++                	TaintHelper.setNewProp(name, value, properties);
++                } else { 
+                 	properties.put(name, value); 
+                 }
+             }
+@@ -369,6 +431,7 @@ public class JiveProperties implements Map<String, String> {
+             Log.error(e.getMessage(), e);
+         }
+         finally {
++        	TaintHelper.unpauseWriteRecord();
+             DbConnectionManager.closeConnection(rs, pstmt, con);
+         }
+     }
+diff --git a/src/java/org/jivesoftware/util/PropertyTransformer.java b/src/java/org/jivesoftware/util/PropertyTransformer.java
+new file mode 100644
+index 0000000..2c2af67
+--- /dev/null
++++ b/src/java/org/jivesoftware/util/PropertyTransformer.java
+@@ -0,0 +1,9 @@
++package org.jivesoftware.util;
++
++import edu.washington.cse.instrumentation.runtime.PropagationTarget;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoPropagate;
++
++public interface PropertyTransformer<T> {
++	@StaccatoPropagate(PropagationTarget.RETURN) 
++	public T transformProperty(String propValue);
++}

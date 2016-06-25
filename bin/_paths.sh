@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -u
+
+THIS_DIR=$(cd $(dirname $0) && pwd)
+
+. $THIS_DIR/paths.sh
+
+PATH_VARS=("OPENFIRE_ROOT" "JFORUM_ROOT" "SUBSONIC_ROOT" "TOMCAT_ROOT" "TOMCAT_EXT" "PHOSPHOR_PATH" "JAVA_INST" "JVM_PATH" "TOMCAT_INST" "CLEAN_OPENFIRE_ROOT" "CLEAN_SUBSONIC_ROOT" "CLEAN_JFORUM_ROOT" "JMETER_DIR" "MAILER_PATH" "GRADLE_PATH" "SOLR_BROKEN_PATH" "SOLR_FIXED_PATH" "ENUM_JAVA_INST")
+
+for i in ${PATH_VARS[@]}; do
+	if [ -n "${!i+1}" ]; then
+		echo $i"="${!i};
+	fi
+done

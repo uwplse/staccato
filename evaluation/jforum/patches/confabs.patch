@@ -1,0 +1,102 @@
+diff --git a/src/net/jforum/util/ClassResolver.java b/src/net/jforum/util/ClassResolver.java
+new file mode 100644
+index 0000000..ef2b091
+--- /dev/null
++++ b/src/net/jforum/util/ClassResolver.java
+@@ -0,0 +1,12 @@
++package net.jforum.util;
++
++public class ClassResolver implements edu.washington.cse.instrumentation.runtime.StaccatoRuntime.ClassResolver {
++	public static final ClassResolver instance = new ClassResolver();
++	
++	private ClassResolver() { }
++	
++	public Class forName(String className) throws ClassNotFoundException {
++		return ClassResolver.class.getClassLoader().loadClass(className);
++	}
++
++}
+diff --git a/src/net/jforum/util/preferences/SystemGlobals.java b/src/net/jforum/util/preferences/SystemGlobals.java
+index 2232447..f1160ca 100644
+--- a/src/net/jforum/util/preferences/SystemGlobals.java
++++ b/src/net/jforum/util/preferences/SystemGlobals.java
+@@ -154,7 +154,7 @@ public class SystemGlobals implements VariableStore
+ 	 * */
+ 	public static void setValue(String field, String value)
+ 	{
+-		globals.installation.put(field, value);
++		TaintHelper.setNewProp(field, value, globals.installation);
+ 		globals.expander.clearCache();
+ 	}
+ 	
+@@ -211,7 +211,7 @@ public class SystemGlobals implements VariableStore
+ 		try
+ 		{
+ 			FileInputStream input = new FileInputStream(file);
+-			globals.installation.load(input);
++			TaintHelper.loadProperties(input, globals.installation);
+ 			input.close();
+ 		}
+ 		catch (IOException e)
+@@ -300,7 +300,7 @@ public class SystemGlobals implements VariableStore
+ 	 */
+ 	public static boolean getBoolValue(String field)
+ 	{
+-		return "true".equals(getValue(field));
++		return Boolean.parseBoolean(getValue(field));
+ 	}
+ 
+ 	/**
+@@ -313,15 +313,10 @@ public class SystemGlobals implements VariableStore
+ 
+ 	public String getVariableValue(String field)
+ 	{
+-		String preExpansion = globals.installation.getProperty(field);
+-		
+-		if (preExpansion == null) {
+-			preExpansion = this.defaults.getProperty(field);
+-
++		String preExpansion = TaintHelper.getProp(field, globals.installation, globals.defaults.getProperty(field));
+ 		if (preExpansion == null) {
+ 			return null;
+ 		}
+-		}
+ 
+ 		return expander.expandVariables(preExpansion);
+ 	}
+diff --git a/src/net/jforum/view/admin/ConfigAction.java b/src/net/jforum/view/admin/ConfigAction.java
+index 965deff..85c2cb8 100644
+--- a/src/net/jforum/view/admin/ConfigAction.java
++++ b/src/net/jforum/view/admin/ConfigAction.java
+@@ -150,15 +150,19 @@ public class ConfigAction extends AdminCommand
+ 
+ 	void updateData(Properties p)
+ 	{
++		TaintHelper.startUpdate(ConfigKeys.TOPICS_PER_PAGE, ConfigKeys.I18N_DEFAULT, ConfigKeys.TOPICS_PER_PAGE);
++		try {
+ 			int oldTopicsPerPage = SystemGlobals.getIntValue(ConfigKeys.TOPICS_PER_PAGE);
+ 	
+ 			for (Iterator iter = p.entrySet().iterator(); iter.hasNext(); ) {
+ 				Map.Entry entry = (Map.Entry)iter.next();
+-			
++				if(SystemGlobals.getValue((String)entry.getKey()).equals(entry.getValue())) {
++					continue;
++				}
+ 				SystemGlobals.setValue((String)entry.getKey(), (String)entry.getValue());
+ 			}
+ 			
+-		SystemGlobals.saveInstallation();
++//			SystemGlobals.saveInstallation();
+ 			I18n.changeBoardDefault(SystemGlobals.getValue(ConfigKeys.I18N_DEFAULT));
+ 			
+ 			// If topicsPerPage has changed, force a reload in all forums
+@@ -174,6 +178,9 @@ public class ConfigAction extends AdminCommand
+ 					}
+ 				}
+ 			}
++		} finally {
++			TaintHelper.endUpdate(ConfigKeys.TOPICS_PER_PAGE, ConfigKeys.I18N_DEFAULT, ConfigKeys.TOPICS_PER_PAGE);
++		}
+ 	}
+ 	
+ 	private String safeValue(String name, String value) 

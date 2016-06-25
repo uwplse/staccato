@@ -1,0 +1,850 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+repositories {
+  mavenCentral()
+}
+
+sourceSets {
+  main {
+	java {
+	  srcDirs 'src/'
+	}
+	resources {
+	  srcDirs 'src/'
+	}
+  }
+  testApp {
+	java {
+	  srcDirs "src/"
+	}
+  }
+}
+
+eclipse {
+  classpath {
+	downloadSources = true
+	downloadJavadoc = true
+	defaultOutputDir file('classes')
+  }
+}
+
+dependencies {
+  compile group: 'org.javassist', name: 'javassist', version: '3.18.0-GA'
+  compile group: 'org.ow2.asm', name: 'asm-debug-all', version: '5.0.3'
+  compile files('./phosphor.jar') {
+	builtBy 'phosphorJar'
+  }
+}
+
+
+ext.CHECK_ALL_LIN = "staccato.check-all-lin"
+ext.WRAP_VOLATILE = "staccato.wrap-volatile"
+ext.AUTO_TAINT_OPT = "staccato.auto-taint"
+ext.WEAK_CHECKING_OPT = "staccato.weak-checking"
+ext.METHOD_LINEAR_OPT = "staccato.method-linear"
+ext.WITH_ENUM = "staccato.check-enum"
+
+def getWithDefault(prop, defaultVal) {
+  if(hasProperty(prop)) {
+	return Boolean.parseBoolean(property(prop));
+  } else {
+	return defaultVal
+  }
+}
+
+def configureStaccatoCall(spec, defaultCheck = null) {
+  if(rootProject.getWithDefault("autoTaint", false)) {
+	spec.systemProperties([(rootProject.AUTO_TAINT_OPT): true])
+  }
+  if(rootProject.getWithDefault("weakChecking", false)) {
+	spec.systemProperties([(rootProject.WEAK_CHECKING_OPT): true])
+  }
+  if(rootProject.getWithDefault("linRead", true)) {
+	spec.systemProperties([(rootProject.METHOD_LINEAR_OPT): true])
+  }
+  if((defaultCheck == null && rootProject.getWithDefault("defaultCheck", true)) ||
+	 defaultCheck) {
+	spec.systemProperties([(rootProject.CHECK_ALL_LIN): true])
+  }
+  if(rootProject.getWithDefault("enum", false)) {
+	spec.systemProperties([(rootProject.WITH_ENUM): true])
+  }
+  spec.systemProperties('staccato.phosphor-jar': phosphorJar.outputs.files.singleFile.path, "staccato.runtime-jar": rootProject.property("staccatoRuntime").archivePath)
+  spec.systemProperties("staccato.jvm": javaInst + "/lib/*")
+}
+
+compileJava {
+  exclude "edu/washington/cse/analysis/**", "edu/washington/cse/instrumentation/analysis/**"
+  options.debugOptions.debugLevel = "source,lines,vars"
+}
+
+apply from: "paths.gradle", to: rootProject
+
+task instrumentJar(type: Jar, dependsOn: [compileJava, processResources]) {
+  baseName 'staccato-instrument'
+  destinationDir file("$projectDir")
+  includeEmptyDirs false
+  from((files(sourceSets.main.output.classesDir) + files(sourceSets.main.output.resourcesDir) + files(configurations.runtime)).collect {
+		 it.name.endsWith(".jar") ? zipTree(it) : it
+	   }
+	)
+}
+
+compileTestAppJava {
+  dependsOn += "instrumentJar"
+  include "edu/washington/cse/instrument/**"
+  classpath += files(instrumentJar.archiveName)
+}
+
+def test_jar = "staccato-test"
+
+
+task testAppJar(type: Jar, dependsOn: compileTestAppJava) { t ->
+  from sourceSets.testApp.output.classesDir
+  baseName (test_jar + "_pre")
+  destinationDir file("${rootProject.buildDir}")
+}
+
+class AbstractInstSpec {
+  def rule_file = null
+  def extraRules = null
+  def add_output = true
+  def add_input = true
+  def default_check = true
+  def class_pattern = null
+  def quiet = false
+
+  def wrap_volatile = true
+
+  def ap_rule = null
+
+  def wrap_volatile(wv) {
+	this.wrap_volatile = wv
+  }
+
+  def extra_props = []
+
+  def extraProps(p) {
+	this.extra_props += p;
+  }
+
+  def auto_propagate(ap) {
+	this.ap_rule = ap;
+  }
+
+  def quiet(q) {
+	this.quiet = q;
+  }
+
+  def class_pattern(cp) {
+	this.class_pattern = cp;
+  }
+
+  def default_check(dc) {
+	this.default_check = dc
+  }
+
+  def rule_file(r) {
+	this.rule_file = r
+  }
+
+  def extraRules(Object... rules) {
+	if(rules.length == 1 && rules[0] instanceof List) {
+	  this.extraRules = rules
+	} else {
+	  this.extraRules = rules
+	}
+  }
+
+}
+
+class InstrumentSpec extends AbstractInstSpec {
+  def inputJar = null
+  def outputJar = null
+
+  def classpath(cp) {
+	this.classpath = cp
+  }
+
+  def classpath = null
+
+  def inputJar(ij) {
+	this.inputJar = ij
+  }
+
+  def outputJar(oj) {
+	this.outputJar = oj
+  }
+
+  def _enum_by_val = false
+
+  def enum_by_val(f) {
+	this._enum_by_val = f
+  }
+}
+
+task phosphorJar(type: Exec) {
+  inputs.files(phosphorPath + "/Phosphor/src")
+  outputs.file("$rootProject.projectDir/phosphor.jar")
+  workingDir phosphorPath
+  commandLine(["mvn", "package", "-Dmaven.test.skip=true"])
+  doLast {
+	copy {
+	  from file(phosphorPath + "/Phosphor/target/Phosphor-0.0.2-SNAPSHOT.jar")
+	  into "$rootProject.projectDir"
+	}
+	file("$rootProject.projectDir/Phosphor-0.0.2-SNAPSHOT.jar").renameTo(file("$rootProject.projectDir/phosphor.jar"))
+  }
+}
+
+compileJava.dependsOn += phosphorJar
+
+def create_phosphor_pass(p_task, build_task, with_enums_by_val = false) {
+  return p_task.project.tasks.create(type: JavaExec, name: p_task.name + "_phosphor", dependsOn: [build_task, phosphorJar]) { t ->
+	workingDir "$rootProject.buildDir"
+	def phos_inst_name = build_task.outputs.files.singleFile.name
+	def phos_inst = t.getTemporaryDir().path + "/" +  phos_inst_name
+	inputs.files(build_task)
+	inputs.file(phosphorJar)
+	outputs.file(phos_inst)
+	classpath phosphorJar
+	main "edu.columbia.cs.psl.phosphor.Instrumenter"
+	def meth_args = [ "-multiTaint" ] 
+	if(with_enums_by_val) {
+	  meth_args += [ "-withEnumsByValue", "-forceUnboxAcmpEq" ]
+	}
+	//meth_args += [ "-controlTrack" ]
+	//+ (false ? [ "-controlTrack" ] : []) 
+	/*	if(rootProject.getWithDefault("autoTaint", false)) {
+	  meth_args += [ "-autoTaint" ]
+	  }*/
+	meth_args += [ build_task.outputs.files.singleFile.path, t.temporaryDir.path ]
+	args(meth_args)
+  }
+}
+
+
+def mk_inst_exec(task, spec) {
+  if(!(spec instanceof InstrumentSpec)) {
+	def cl = spec
+	spec = new InstrumentSpec()
+	cl.delegate = spec
+	cl spec
+  }
+  if(spec.inputJar == null ||
+	 spec.rule_file == null) {
+	throw new ProjectConfigurationException("Bad input spec for transform", null)
+  }
+  def inputFile = spec.inputJar instanceof Task ? spec.inputJar.outputs.files.singleFile.path : spec.inputJar
+  if(spec.outputJar == null) {
+	spec.outputJar = "$task.project.buildDir/" + file(inputFile).name
+  }
+  if(spec.extraRules != null) {
+	task.inputs.files(*spec.extraRules)
+  }
+  task.ext.IsInstrumentation = true
+  task.dependsOn += instrumentJar
+  task.inputs.files(spec.rule_file)
+  task.inputs.files(instrumentJar)
+  if(spec.add_input) {
+	task.inputs.files(inputFile)
+  }
+  if(spec.inputJar instanceof Task) {
+	task.dependsOn += spec.inputJar
+  }
+  if(spec.add_output) {
+	task.outputs.file(spec.outputJar)
+  }
+  def invoke_args = [ inputFile, spec.rule_file, spec.outputJar ]
+  if(spec.class_pattern != null) {
+	invoke_args += spec.class_pattern
+  }
+  return {
+	def extra_classpath = null
+	if(spec.classpath != null) {
+	  if(spec.classpath instanceof Closure) {
+		def cp = spec.classpath
+		extra_classpath = cp()
+	  } else {
+		extra_classpath = spec.classpath
+	  }
+	};
+	javaexec { t2 ->
+	  classpath phosphorJar
+	  classpath instrumentJar
+	  rootProject.configureStaccatoCall(t2, spec.default_check)
+	  if(spec.ap_rule != null) {
+		systemProperties(["staccato.auto-propagate": spec.ap_rule])
+	  }
+	  if(spec.wrap_volatile) {
+		systemProperties([(rootProject.WRAP_VOLATILE): true])
+	  }
+	  if(spec.extra_props != null && spec.extra_props.size() > 0) {
+		systemProperties(spec.extra_props)
+	  }
+	  main "edu.washington.cse.instrumentation.InstrumentJar"
+	  args(invoke_args)
+	  if(extra_classpath != null) {
+		classpath extra_classpath
+	  }
+	}
+  }
+}
+
+def add_instrument(task, closure) {
+  def spec = new InstrumentSpec()
+  closure.delegate = spec
+  closure spec
+  def input_jar = spec.inputJar = task.outputs.files.singleFile.absolutePath
+  def temp_jar = spec.outputJar = spec.inputJar + "_inst"
+  spec.add_output = false
+  spec.add_input = false
+  def ex = mk_inst_exec(task, spec)
+  task << ex
+  task << {
+	delete(input_jar)
+	file(temp_jar).renameTo(file(input_jar))
+  }
+}
+
+def instrument(parent_task, build_task, closure) {
+  def spec = new InstrumentSpec();
+  closure.delegate = spec
+  closure spec
+  if(build_task instanceof String) {
+	def input_jar_name = build_task
+	build_task = parent_task.project.tasks.create(name: parent_task.name + "_copy") { t ->
+	  t << {
+		copy {
+		  from input_jar_name
+		  into t.getTemporaryDir().path
+		}
+	  }
+	  t.inputs.files(input_jar_name)
+	  t.outputs.file(t.getTemporaryDir().path + "/" + file(input_jar_name).name)
+	}
+  }
+  def phos_phase = create_phosphor_pass(parent_task, build_task, spec._enum_by_val);
+  spec.inputJar = phos_phase
+  def ex = mk_inst_exec(parent_task, spec)
+  parent_task << ex
+}
+
+task instrumentTestApp() { t ->
+  instrument(t, testAppJar) {
+	outputJar (test_jar+ ".jar")
+	rule_file "rules/rt.rules"
+	extraProps(["staccato.tag-cf": "true"])
+  }
+}
+
+task instrumentRt(type: JavaExec, dependsOn: [instrumentJar, "instrumentJVM"]) {
+  classpath instrumentJar.archivePath
+  main 'edu.washington.cse.instrumentation.InstrumentTaint'
+  args 'rules/rt_internal.rules', "$projectDir/rt_instrument", '--rt', "$javaInst/lib/"
+  outputs.dir "$projectDir/rt_instrument"
+  ext.IsInstrumentation = true
+  inputs.files("rules/rt.rules", "rules/jdbc.rules", "rules/string.rules", "rules/naming.rules", "rules/rt_internal.rules")
+  inputs.files(phosphorJar)
+  systemProperties('staccato.phosphor-jar': './phosphor.jar', "staccato.runtime-jar": instrumentJar.archivePath)
+}
+
+task staccatoRuntime(type: Jar, dependsOn: 'instrumentRt') { t ->
+  baseName 'staccato'
+  destinationDir file("$projectDir")
+  from(files(sourceSets.main.output.classesDir) + files("$projectDir/rt_instrument"))
+  inputs.dir(sourceSets.main.output.classesDir)
+  inputs.dir("$projectDir/rt_instrument")
+  include("edu/washington/cse/instrumentation/runtime/**", "java/**")
+  def input_jar = t.outputs.files.singleFile.absolutePath
+  def temp_jar = input_jar + "_tmp"
+  t << {
+	javaexec {
+	  classpath instrumentJar
+	  main "edu.washington.cse.instrumentation.InstrumentContainers"
+	  args input_jar, temp_jar
+	}
+	file(temp_jar).renameTo(file(input_jar))
+  }
+  add_instrument(t) {
+	wrap_volatile false
+	default_check false
+	rule_file "rules/staccato.rules"
+  }
+}
+
+clean {
+  delete (tasks.matching { it instanceof Jar || it.ext.has("IsInstrumentation") && it.ext.get("IsInstrumentation") }).collect {
+	it.outputs.files
+  }
+  delete files("debug-openfire")
+}
+
+project("openfire") {
+  if(!rootProject.hasProperty("cleanOpenfireRoot") || !rootProject.hasProperty("openfireRoot")) {
+	return;
+  }
+	
+  def openfire_dir = rootProject.openfireRoot
+  buildDir = "$rootProject.buildDir/openfire"
+
+  def build_dir = openfire_dir + "build/"
+  ext.build_lib_dir = build_dir + "/lib"
+  def dist_dir = build_lib_dir + "/dist"
+
+  task buildClean(type: Exec) {
+	def srcDir = rootProject.cleanOpenfireRoot
+	inputs.files(srcDir + "/src/")
+	outputs.file(srcDir + "/target/openfire/lib/openfire.jar")
+	workingDir (srcDir + "/build")
+	commandLine(["ant"])
+  }
+
+  task _openfireJar {
+	inputs.files(openfire_dir + "/src/")
+	outputs.file("$buildDir/openfire_pre.jar")
+	doLast {
+	  exec {
+		workingDir build_dir
+		commandLine(["ant"])
+	  }
+	  file(openfire_dir + "/target/openfire/lib/openfire.jar").renameTo(file("$buildDir/openfire_pre.jar"))
+	}
+	ext.IsBuild = true
+  }
+
+  task instrumentOF { t ->
+	instrument(t, _openfireJar) {
+	  rule_file "${rootProject.projectDir}/rules/openfire.rules"
+	  outputJar "$buildDir/openfire.jar"
+	  classpath dist_dir + "/*"
+	  class_pattern '^(org/jivesoftware|org/xmpp).+'
+	  auto_propagate 'org/jivesoftware/util/JiveGlobals:setProperty:set*'
+	  extraProps(["staccato.app-classes": '^org/jivesoftware.*$', 'staccato.jvm': enumJavaInst + '/lib/*', 'staccato.check-enum': true/*, "staccato.tag-cf": true*/])
+	  enum_by_val true
+	}
+  }
+
+  task instrumentPG { t ->
+	instrument(t, dist_dir + "/postgres.jar") {
+	  rule_file "${rootProject.projectDir}/rules/jdbc.rules"
+	  outputJar "$buildDir/postgres.jar"
+	  extraProps(['staccato.jvm': enumJavaInst + '/lib/*', 'staccato.check-enum': true])
+	  enum_by_val true
+	}
+  }
+
+  task deploy(type: Copy, dependsOn: ':instrumentEnumJVM') {
+	from instrumentPG.outputs.files + instrumentOF.outputs.files
+	into openfire_dir + "/target/openfire/lib"
+	ext.IsLib = true
+	ext.IsDeploy = true
+  }
+}
+
+class WarInstrumentSpec extends AbstractInstSpec {
+  def input_war = null
+  def output_war = null
+  def lib_jars = []
+  def lib_dir = null
+  def add_wars = true
+  def input_war(iw) {
+	this.input_war = iw
+  }
+
+  def output_war(ow) {
+	this.output_war = ow
+  }
+
+  def rule_file(r) {
+	this.rule_file = r
+  }
+
+  def lib_jar(Object... t) {
+	t.each { 
+	  this.lib_jars.add(it)
+	}
+  }
+
+  def lib_dir(ld) {
+	this.lib_dir = ld
+  }
+
+  def add_wars(aw) {
+	this.add_wars = aw
+  }
+}
+
+
+task deployStaccatoLib(type: Copy) {
+  if(!rootProject.hasProperty("tomcatExt")) {
+	return;
+  }
+  from staccatoRuntime
+  into tomcatExt
+  fileMode 0777
+}
+
+task deployPhosphorJar(type: Copy) {
+  if(!rootProject.hasProperty("tomcatExt")) {
+	return;
+  }
+  from phosphorJar
+  into tomcatExt
+  fileMode 0777
+}
+
+
+task instrumentJVM(type: JavaExec, dependsOn: phosphorJar) {
+  classpath phosphorJar
+  outputs.files(javaInst)
+  inputs.file(jvmPath)
+  inputs.file(phosphorJar)
+  enableAssertions true
+  main "edu.columbia.cs.psl.phosphor.Instrumenter"
+  def meth_args = [ "-multiTaint" ] + (false ? ["-controlTrack"] : []) + [jvmPath, javaInst]
+  args(meth_args)
+  doLast {
+	exec {
+	  commandLine([ "chmod", "777", "-R", javaInst ])
+	}
+  }
+}
+
+
+task instrumentEnumJVM(type: JavaExec, dependsOn: phosphorJar) {
+  classpath phosphorJar
+  outputs.files(enumJavaInst)
+  inputs.file(jvmPath)
+  inputs.file(phosphorJar)
+  enableAssertions true
+  main "edu.columbia.cs.psl.phosphor.Instrumenter"
+  def meth_args = [ "-multiTaint", "-withEnumsByValue", "-forceUnboxAcmpEq" ] + (false ? ["-controlTrack"] : []) + [jvmPath, enumJavaInst]
+  args(meth_args)
+  doLast {
+	exec {
+	  commandLine([ "chmod", "777", "-R", enumJavaInst ])
+	}
+  }
+
+}
+
+task instrumentTomcat(type: JavaExec, dependsOn: phosphorJar) {
+  if(!rootProject.hasProperty("tomcatInst")) {
+	return;
+  }
+  outputs.files(tomcatInst)
+  inputs.file(phosphorJar)
+  inputs.file(tomcatRoot + "/lib")
+  classpath phosphorJar
+  main "edu.columbia.cs.psl.phosphor.Instrumenter"
+  args "-multiTaint", tomcatRoot, tomcatInst
+  doLast {
+	exec {
+	  commandLine([ "chmod", "777", "-R", tomcatInst ])
+	}
+  }
+}
+
+
+def instrument_war(parent_task, build_task, cl) {
+  def phos_phase = create_phosphor_pass(parent_task, build_task);
+  def spec = new WarInstrumentSpec()
+  cl.delegate = spec
+  cl spec
+  parent_task.dependsOn += phos_phase
+  parent_task.dependsOn += instrumentJar
+  if(spec.add_input) {
+	parent_task.inputs.files(spec.rule_file)
+	parent_task.inputs.files(instrumentJar)
+  }
+  if(spec.add_output) {
+	parent_task.outputs.file(spec.output_war)
+  }
+
+  if(spec.extraRules) {
+	parent_task.inputs.files(*spec.extraRules)
+  }
+
+  parent_task << {
+	def temp_dir = parent_task.getTemporaryDir()
+	def expanded_dir = temp_dir.path + "/expanded_war/"
+	def input_war = phos_phase.outputs.files.singleFile
+	copy {
+	  from zipTree(input_war)
+	  into expanded_dir
+	}
+	javaexec { t2 ->
+	  classpath phosphorJar
+	  classpath instrumentJar
+	  systemProperties(servlet: rootProject.tomcatRoot + "/lib")
+	  rootProject.configureStaccatoCall(t2, spec.default_check)
+	  if(spec.wrap_volatile) {
+		systemProperties([(rootProject.WRAP_VOLATILE): "true"])
+	  }
+	  if(spec.extra_props != null && spec.extra_props.size() > 0) {
+		systemProperties(spec.extra_props)
+	  }
+	  args([expanded_dir, input_war.path, spec.rule_file, spec.output_war] + spec.lib_jars)
+	  main "edu.washington.cse.instrumentation.InstrumentWar"
+	}
+  }
+}
+
+def instrumentSolrSource(srcTree, t) {
+  exec {
+	workingDir "$srcTree"
+	commandLine(["ant", "clean"])
+  }
+  exec {
+	workingDir "$srcTree"
+	commandLine(["ant", "resolve"])
+  }
+  exec {
+	workingDir "$srcTree/lucene"
+	commandLine(["ant", "compile-test"])
+  }
+  exec {
+	workingDir "$srcTree/solr"
+	commandLine(["ant", "compile", "compile-test"])
+  }
+  def allSrcJars = ["$srcTree/solr/lib", "$srcTree/lucene/build/", "$srcTree/lucene/analysis/"].collect { f ->
+	(fileTree(dir: f, include: "**/*.jar"))
+  }
+  def allJars = allSrcJars.tail().inject(allSrcJars.head()) { result, i ->
+	result + i
+  }.iterator().collect { f -> f.absolutePath }.toList()
+  def tDir = t.getTemporaryDir()
+  ["$srcTree/solr/lib", "$srcTree/lucene/build/", "$srcTree/lucene/analysis/"].each { f ->
+	fileTree(dir: f, include: "**/*.jar").each {
+	  def tempFile = tDir.absolutePath + File.separator + it.name
+	  def tempFilePhos = tDir.absolutePath + File.separator + it.name.replace(".jar", "_pre.jar")
+	  def inputFile = it.absolutePath
+	  javaexec {
+		classpath phosphorJar
+		main "edu.columbia.cs.psl.phosphor.Instrumenter"
+		args(["-multiTaint", inputFile, tDir.absolutePath])
+	  }
+	  file(tempFile).renameTo(tempFilePhos)
+	  def withoutTargetJar = allJars.grep { j ->
+		file(j).name != it.name
+	  }
+	  javaexec {
+		classpath instrumentJar
+		classpath phosphorJar
+		classpath(withoutTargetJar)
+		main "edu.washington.cse.instrumentation.InstrumentJar"
+		args([tempFilePhos, "$rootProject.projectDir/rules/solr.rules", tempFile])
+		systemProperties([(rootProject.WEAK_CHECKING_OPT): true])
+		systemProperties("staccato.jvm": javaInst + "/lib/")
+		systemProperties('staccato.phosphor-jar': phosphorJar.outputs.files.singleFile.path, "staccato.runtime-jar": rootProject.property("staccatoRuntime").archivePath)
+		systemProperties('staccato.verbose': true)
+	  }
+	  java.nio.file.Files.move(file(tempFile).toPath(), it.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+	}
+  }
+  ["$srcTree/lucene/build/core/classes/java", "$srcTree/solr/build/solr-core/classes/java"].eachWithIndex { f, i ->
+	def tempFile = t.getTemporaryDir().absolutePath + File.separator + i + "_phosphor"
+	javaexec {
+	  classpath phosphorJar
+	  main "edu.columbia.cs.psl.phosphor.Instrumenter"
+	  args(["-multiTaint", f, tempFile])
+	}
+	def inst_args = ["$rootProject.projectDir/rules/solr.rules", tempFile ] + fileTree(dir: tempFile, include: "**/*.class").toList().collect {
+	  it.absolutePath.replace(tempFile + "/", "")
+	}
+	javaexec {
+	  classpath instrumentJar
+	  classpath phosphorJar
+	  classpath tempFile
+	  classpath(allJars)
+	  main "edu.washington.cse.instrumentation.InstrumentTaint"
+	  args(inst_args)
+	  systemProperties([(rootProject.WEAK_CHECKING_OPT): true])
+	  systemProperties("staccato.jvm": javaInst + "/lib/")
+	  systemProperties('staccato.phosphor-jar': phosphorJar.outputs.files.singleFile.path, "staccato.runtime-jar": rootProject.property("staccatoRuntime").archivePath)
+	  systemProperties('staccato.verbose': true)
+	}
+	copy {
+	  from tempFile
+	  into f
+	}
+  }
+}
+
+if(rootProject.hasProperty("solrBroken") && rootProject.hasProperty("solrFixed")) {
+  project("solr") {
+	buildDir = "$rootProject.buildDir/solr"
+
+	task buildBrokenSolr(dependsOn: [phosphorJar, staccatoRuntime]) { t ->
+	  doLast {
+		rootProject.instrumentSolrSource(solrBroken, t)
+	  }
+	}
+
+	task buildFixedSolr(dependsOn: [phosphorJar, staccatoRuntime]) { t ->
+	  doLast {
+		rootProject.instrumentSolrSource(solrFixed, t)
+	  }
+	}
+  }
+}
+
+project("jforum") {
+  if(!rootProject.hasProperty("jforumRoot") || !rootProject.hasProperty("cleanJforumRoot")) {
+	return;
+  }
+  buildDir = "$rootProject.buildDir/jforum"
+  def jforum_dir = rootProject.jforumRoot
+  ext.build_lib_dir = jforum_dir + "/WEB-INF/lib"
+
+  task buildClean(type: Exec) {
+	def cjforumDir = rootProject.cleanJforumRoot
+	ext.IsBuild = true
+	inputs.files(cjforumDir + "/src")
+	outputs.files(cjforumDir + "/dist/jforum-2.1.8.war")
+	workingDir cjforumDir
+	commandLine(["ant", "dist"])
+  }
+  
+  task buildJForum(type: Exec) { t ->
+	ext.IsBuild = true
+	inputs.files(jforum_dir + "/src")
+	outputs.files(t.getTemporaryDir().path + "/jforum-2.1.8.war")
+	workingDir jforum_dir
+	commandLine(["ant", "dist"])
+	doLast {
+	  copy {
+		from jforum_dir + "/dist/jforum-2.1.8.war"
+		into t.getTemporaryDir()
+	  }
+	}
+  }
+
+  task instrumentJforum { t ->
+	instrument_war(t, buildJForum) {
+	  output_war "$jforum_dir/dist/jforum-2.1.8.war"
+	  rule_file "$rootProject.projectDir/rules/jforum.rules"
+	  lib_jar "freemarker-2.3.9.jar", "mail.jar", "postgresql-8.0-313.jdbc3.jar"
+	  extraProps(["staccato.app-classes": '^net/jforum.*$'/*, "staccato.tag-cf": "true"*/ ])
+	}
+  }
+
+
+
+  task deploy {
+	dependsOn instrumentJforum
+	ext.IsDeploy = true
+  }
+}
+
+
+
+project("subsonic") {
+  if(!rootProject.hasProperty("subsonicRoot") ||
+	 !rootProject.hasProperty("cleanSubsonicRoot")) {
+	return;
+  }
+  buildDir = "$rootProject.buildDir/subsonic"
+  def subsonic_dir = rootProject.subsonicRoot
+
+  task deployMavenDep(type: Exec) {
+	dependsOn staccatoRuntime
+	executable "mvn"
+	workingDir "$rootProject.buildDir"
+	args([
+		   "install:install-file",
+		   "-Dfile=" + staccatoRuntime.outputs.files.singleFile,
+		   "-DgroupId=uwplse",
+		   "-DartifactId=staccato",
+		   "-Dversion=1.0.0",
+		   "-Dpackaging=jar",
+		   "-DgeneratePom=true"
+		 ])
+	doLast {
+	  exec {
+		workingDir "$rootProject.buildDir"
+		executable "mvn"
+		args([
+			   "install:install-file",
+			   "-Dfile=" + phosphorJar.outputs.files.singleFile,
+			   "-DgroupId=psl",
+			   "-Dversion=0.0.2",
+			   "-DartifactId=phosphor",
+			   "-Dpackaging=jar",
+			   "-DgeneratePom=true"
+			 ])
+	  }
+	}
+  }
+
+  task makeSubsonicWar(type: Exec) { t ->
+	dependsOn staccatoRuntime
+	executable "mvn"
+	workingDir subsonic_dir
+	inputs.files("${subsonic_dir}/subsonic-main/src/main")
+	outputs.files(t.temporaryDir.path + "/subsonic.war")
+	args(["package", "-Dmaven.test.skip=true"])
+	doLast {
+	  copy {
+		from file("${subsonic_dir}/subsonic-main/target/subsonic.war")
+		into t.temporaryDir
+	  }
+	}
+  }
+
+  task buildClean(type: Exec) {
+	def srcDir = rootProject.cleanSubsonicRoot
+	ext.IsBuild = true
+	inputs.files(srcDir + "/subsonic-main/src/main")
+	outputs.files(srcDir + "/subsonic-main/target/subsonic.war")
+	workingDir srcDir
+	commandLine(["mvn", "package", "-Dmaven.test.skip=true"])
+  }
+
+  /*
+   * not the right way to do this, something like this:
+   * http://stackoverflow.com/questions/27993814/only-run-task-if-another-isnt-up-to-date-in-gradle
+   * but that was too complicated...
+   */
+  makeSubsonicWar.doFirst {
+	deployMavenDep.execute()
+  }
+
+  task instrumentSubsonic { t ->
+	instrument_war(t, makeSubsonicWar) {
+	  rule_file "${rootProject.projectDir}/rules/subsonic.rules"
+	  output_war "${subsonic_dir}/subsonic-main/target/subsonic.war"
+	  lib_jar "acegi-security-1.0.5.jar"
+	  extraProps(["staccato.app-classes": '^net/sourceforge/subsonic/.*$'/*, "staccato.tag-cf": "true"*/ ])
+	}
+	ext.IsDeploy = true
+  }
+}
+
+allprojects.each { p ->
+  def dev_deploy = null
+  if(p.hasProperty("build_lib_dir")) {
+	dev_deploy = p.tasks.create(name: "deployDev", type: Copy) { t ->
+	  dependsOn staccatoRuntime
+	  from staccatoRuntime.outputs.files
+	  from phosphorJar.outputs.files
+	  into p.build_lib_dir
+	}
+  }
+  p.tasks.each { t ->
+	if(t.hasProperty("IsBuild") && t.IsBuild) {
+	  t.dependsOn += staccatoRuntime
+	  if(dev_deploy != null) {
+		t.dependsOn += dev_deploy
+	  }
+	}
+	if(t.hasProperty("IsLib") && t.IsLib &&
+	   t.hasProperty("IsDeploy") && t.IsDeploy) {
+	  if(t instanceof Copy) {
+		t.from(staccatoRuntime.outputs.files)
+	  }
+	}
+  }
+}

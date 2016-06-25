@@ -1,0 +1,54 @@
+diff --git a/solr/core/src/java/org/apache/solr/update/DirectUpdateHandler2.java b/solr/core/src/java/org/apache/solr/update/DirectUpdateHandler2.java
+index 66984fb..db099ef 100644
+--- a/solr/core/src/java/org/apache/solr/update/DirectUpdateHandler2.java
++++ b/solr/core/src/java/org/apache/solr/update/DirectUpdateHandler2.java
+@@ -198,7 +198,7 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
+ 
+           Document luceneDocument = cmd.getLuceneDocument();
+           // SolrCore.verbose("updateDocument",updateTerm,luceneDocument,writer);
+-          writer.updateDocument(updateTerm, luceneDocument);
++          writer.updateDocument(updateTerm, luceneDocument, schema.getAnalyzer());
+           // SolrCore.verbose("updateDocument",updateTerm,"DONE");
+ 
+ 
+@@ -219,7 +219,7 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
+ 
+       } else {
+         // allow duplicates
+-        writer.addDocument(cmd.getLuceneDocument());
++        writer.addDocument(cmd.getLuceneDocument(), schema.getAnalyzer());
+         if (ulog != null) ulog.add(cmd);
+       }
+ 
+@@ -371,7 +371,7 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
+     synchronized (this) {
+       IndexWriter writer = solrCoreState.getIndexWriter(core);
+ 
+-      writer.updateDocument(idTerm, luceneDocument);
++      writer.updateDocument(idTerm, luceneDocument, core.getSchema().getAnalyzer());
+ 
+       for (Query q : dbqList) {
+         writer.deleteDocuments(q);
+diff --git a/solr/core/src/java/org/apache/solr/update/SolrIndexConfig.java b/solr/core/src/java/org/apache/solr/update/SolrIndexConfig.java
+index 6bbadcf..b9da98b 100644
+--- a/solr/core/src/java/org/apache/solr/update/SolrIndexConfig.java
++++ b/solr/core/src/java/org/apache/solr/update/SolrIndexConfig.java
+@@ -155,7 +155,7 @@ public class SolrIndexConfig {
+   }
+ 
+   public IndexWriterConfig toIndexWriterConfig(IndexSchema schema) {
+-    IndexWriterConfig iwc = new IndexWriterConfig(luceneVersion, schema.getAnalyzer());
++    IndexWriterConfig iwc = new IndexWriterConfig(luceneVersion, null);
+     if (maxBufferedDocs != -1)
+       iwc.setMaxBufferedDocs(maxBufferedDocs);
+ 
+@@ -200,7 +200,8 @@ public class SolrIndexConfig {
+         tieredMergePolicy.setSegmentsPerTier(mergeFactor);
+       }
+     } else {
+-      log.warn("Use of compound file format or mergefactor cannot be configured if merge policy is not an instance of LogMergePolicy or TieredMergePolicy. The configured policy's defaults will be used.");
++      log.warn("Use of compound file format or mergefactor cannot be configured if merge policy is not an instance of LogMergePolicy or " +
++      		"TieredMergePolicy. The configured policy's defaults will be used.");
+     }
+ 
+     if (mergePolicyInfo != null)

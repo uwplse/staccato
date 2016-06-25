@@ -1,0 +1,49 @@
+if(true) {
+  def os = new ByteArrayOutputStream()
+  def result = exec {
+	executable "bash"
+	args([projectDir.path + '/bin/_paths.sh'])
+	standardOutput os
+  }
+  def x = os.toString();
+  def mapping = [
+	"OPENFIRE_ROOT": "openfireRoot",
+	"JFORUM_ROOT": "jforumRoot",
+	"SUBSONIC_ROOT": "subsonicRoot",
+	"TOMCAT_ROOT": "tomcatRoot",
+	"TOMCAT_EXT": "tomcatExt",
+	"SERVLET_JAR_PATH": "servletJarPath",
+	"PHOSPHOR_PATH": "phosphorPath",
+	"JAVA_INST": "javaInst",
+	"JVM_PATH": "jvmPath",
+	"ENUM_JAVA_INST": "enumJavaInst",
+	"TOMCAT_INST": "tomcatInst",
+	"CLEAN_OPENFIRE_ROOT": "cleanOpenfireRoot",
+	"CLEAN_SUBSONIC_ROOT": "cleanSubsonicRoot",
+	"CLEAN_JFORUM_ROOT": "cleanJforumRoot",
+	"SOLR_FIXED_PATH": "solrFixed",
+	"SOLR_BROKEN_PATH": "solrBroken"
+  ]
+  x.trim().split("\n").each {
+	def (k,v) = it.split("=")
+	if(k in mapping) {
+	  rootProject.ext.set(mapping[k], v)
+	}
+  }
+}
+/*
+ext.openfireRoot = "/home/jtoman/sources/openfire_src/"
+ext.jforumRoot = "/home/jtoman/sources/rafaelsteil-jforum2-190d28b"
+ext.subsonicRoot = "/home/jtoman/sources/subsonic-code"
+ext.tomcatRoot = "/usr/share/tomcat7/"
+ext.tomcatExt = "/opt/tomcat/tomcat7/"
+ext.servletJarPath = "/usr/share/java/servlet-api-3.0.jar"
+ext.phosphorPath = "/home/jtoman/sources/phosphor"
+ext.javaInst = "/opt/jvm/jvm-inst"
+ext.jvmPath = "/usr/lib/jvm/java-1.7.0-openjdk-amd64/jre/"
+ext.tomcatInst = "/opt/tomcat/tomcat_phos"
+
+ext.cleanOpenfireRoot = "/home/jtoman/sources/openfire_orig/"
+ext.cleanSubsonicRoot = "/home/jtoman/sources/subsonic-orig/"
+ext.cleanJforumRoot = "/home/jtoman/sources/jforum-clean"
+*/

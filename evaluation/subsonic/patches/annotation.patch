@@ -1,0 +1,122 @@
+diff --git a/src/main/java/net/sourceforge/subsonic/controller/GeneralSettingsController.java b/src/main/java/net/sourceforge/subsonic/controller/GeneralSettingsController.java
+index 9ef9dcc..660b06b 100644
+--- a/src/main/java/net/sourceforge/subsonic/controller/GeneralSettingsController.java
++++ b/src/main/java/net/sourceforge/subsonic/controller/GeneralSettingsController.java
+@@ -36,6 +36,7 @@ import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
+  *
+  * @author Sindre Mehus
+  */
++@StaccatoCheck(CheckLevel.NONE)
+ public class GeneralSettingsController extends SimpleFormController {
+ 
+     private SettingsService settingsService;
+diff --git a/src/main/java/net/sourceforge/subsonic/ldap/SubsonicLdapBindAuthenticator.java b/src/main/java/net/sourceforge/subsonic/ldap/SubsonicLdapBindAuthenticator.java
+index 2f57f6c..b3e7bcf 100644
+--- a/src/main/java/net/sourceforge/subsonic/ldap/SubsonicLdapBindAuthenticator.java
++++ b/src/main/java/net/sourceforge/subsonic/ldap/SubsonicLdapBindAuthenticator.java
+@@ -52,8 +52,8 @@ public class SubsonicLdapBindAuthenticator implements LdapAuthenticator {
+     private long authenticatorTimestamp;
+     private BindAuthenticator delegateAuthenticator;
+     
++    @StaccatoCheck(CheckLevel.STRICT)
+     public LdapUserDetails authenticate(String username, String password) {
+-
+         // LDAP authentication must be enabled on the system.
+         if (!settingsService.isLdapEnabled()) {
+             throw new BadCredentialsException("LDAP authentication disabled.");
+@@ -95,6 +95,7 @@ public class SubsonicLdapBindAuthenticator implements LdapAuthenticator {
+     /**
+      * Creates the delegate {@link BindAuthenticator}.
+      */
++    @StaccatoCheck(value=CheckLevel.NONE)
+     private synchronized void createDelegate() {
+ 
+         // Only create it if necessary.
+diff --git a/src/main/java/net/sourceforge/subsonic/service/SettingsService.java b/src/main/java/net/sourceforge/subsonic/service/SettingsService.java
+index 9d383d8..d34604e 100644
+--- a/src/main/java/net/sourceforge/subsonic/service/SettingsService.java
++++ b/src/main/java/net/sourceforge/subsonic/service/SettingsService.java
+@@ -71,6 +71,7 @@ import edu.washington.cse.instrumentation.runtime.containers.StaccatoList;
+  *
+  * @author Sindre Mehus
+  */
++@StaccatoCheck(CheckLevel.NONE)
+ public class SettingsService {
+ 
+     // Subsonic home directory.
+@@ -397,6 +398,7 @@ public class SettingsService {
+         return TaintHelper.getProp(KEY_IGNORED_ARTICLES, properties, DEFAULT_IGNORED_ARTICLES);
+     }
+     
++    @StaccatoPropagate(PropagationTarget.RETURN)
+     private List<String> getSplitList(String prop, String toSplit) {
+     	List<String> toReturn = new StaccatoList<String>(new ArrayList<String>());
+     	for(String s : prop.split(toSplit)) {
+@@ -417,6 +419,7 @@ public class SettingsService {
+         return TaintHelper.getProp(KEY_SHORTCUTS, properties, DEFAULT_SHORTCUTS);
+     }
+     
++    @StaccatoPropagate(PropagationTarget.RETURN)
+     public List<String> wrapArray(String str, String[] arr) {
+     	StaccatoList<String> toReturn = new StaccatoList<String>(new ArrayList<String>(arr.length));
+     	for(String s : arr) {
+@@ -1399,6 +1402,7 @@ public class SettingsService {
+         }
+     }
+     
++    @StaccatoPropagate(PropagationTarget.RETURN)
+     private List<String> toStringList(String s) {
+         List<String> result = new StaccatoList<String>(new ArrayList<String>());
+         StringTokenizer tokenizer = new StringTokenizer(s, " ");
+diff --git a/src/main/java/net/sourceforge/subsonic/util/StringUtil.java b/src/main/java/net/sourceforge/subsonic/util/StringUtil.java
+index 167718f..bf43d64 100644
+--- a/src/main/java/net/sourceforge/subsonic/util/StringUtil.java
++++ b/src/main/java/net/sourceforge/subsonic/util/StringUtil.java
+@@ -325,6 +325,7 @@ public final class StringUtil {
+      * @return The transformed URL.
+      * @throws MalformedURLException If the original URL is invalid.
+      */
++    @StaccatoPropagate(PropagationTarget.RETURN)
+     public static String toHttpUrl(String url, int port) throws MalformedURLException {
+         URL u = new URL(url);
+         if ("https".equals(u.getProtocol())) {
+@@ -370,6 +371,7 @@ public final class StringUtil {
+     /**
+      * URL-encodes the input value using UTF-8.
+      */
++    @StaccatoPropagate(PropagationTarget.RETURN)
+     public static String urlEncode(String s) {
+         try {
+             return URLEncoder.encode(s, StringUtil.ENCODING_UTF8);
+@@ -404,6 +406,7 @@ public final class StringUtil {
+      * @return The decoded string.
+      * @throws Exception If an error occurs.
+      */
++    @StaccatoPropagate(PropagationTarget.RETURN)
+     public static String utf8HexDecode(String s) throws Exception {
+         if (s == null) {
+             return null;
+@@ -468,6 +471,7 @@ public final class StringUtil {
+      * @param urlWithProtocolHostAndPort Use protocol, host and port from this URL.
+      * @return The rewritten URL, or an unchanged URL if either argument is not a proper URL.
+      */
++    @StaccatoPropagate(PropagationTarget.RETURN)
+     public static String rewriteUrl(String urlToRewrite, String urlWithProtocolHostAndPort) {
+         if (urlToRewrite == null) {
+             return null;
+@@ -487,6 +491,7 @@ public final class StringUtil {
+     /**
+      * Rewrites an URL to make it accessible from remote clients.
+      */
++    @StaccatoPropagate(PropagationTarget.RETURN)
+     public static String rewriteRemoteUrl(String localUrl, boolean urlRedirectionEnabled, String urlRedirectFrom,
+             String urlRedirectContextPath, String localIp, int localPort) throws MalformedURLException {
+ 
+@@ -522,6 +527,7 @@ public final class StringUtil {
+         return filename;
+     }
+ 
++    @StaccatoPropagate(PropagationTarget.RETURN)
+     public static String removeMarkup(String s) {
+         if (s == null) {
+             return null;

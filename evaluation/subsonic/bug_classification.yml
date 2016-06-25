@@ -1,0 +1,10 @@
+- props: [LdapManagerPassword, LdapUrl, LdapManagerDn, LdapSearchFilter]
+  type: stale
+  name: "Ldap"
+- props: '$$StaccatoGroup-0'
+  type: consistency
+  name: Locale
+- props: UrlRedirectionEnabled
+  type: cf-consistency
+- props: UrlRedirectFrom
+  type: consistency

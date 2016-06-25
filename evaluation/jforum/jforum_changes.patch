@@ -1,0 +1,862 @@
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/build.xml rafaelsteil-jforum2-190d28b/build.xml
+--- jforum-clean/build.xml	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/build.xml	2015-04-08 16:10:46.000000000 -0700
+@@ -86,8 +86,8 @@
+ 		       debug="true"
+ 		       optimize="false"
+ 		       deprecation="false"
+-		       source="1.4"
+-		       target="1.4"
++		       source="1.5"
++		       target="1.5"
+ 		       srcdir="${src.dir}"
+ 		       destdir="${classes.dir}">
+ 			<classpath>
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/.classpath rafaelsteil-jforum2-190d28b/.classpath
+--- jforum-clean/.classpath	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/.classpath	2015-10-25 17:20:48.000000000 -0700
+@@ -7,7 +7,6 @@
+ 	<classpathentry kind="src" output="tests/bin" path="tests/core"/>
+ 	<classpathentry kind="lib" path="WEB-INF/lib/activation.jar"/>
+ 	<classpathentry kind="lib" path="WEB-INF/lib/mail.jar"/>
+-	<classpathentry kind="lib" path="lib/servlet-api.jar"/>
+ 	<classpathentry kind="lib" path="lib/junit.jar"/>
+ 	<classpathentry kind="lib" path="WEB-INF/lib/htmlparser-1.5.jar"/>
+ 	<classpathentry kind="lib" path="WEB-INF/lib/ojdbc14.jar"/>
+@@ -23,7 +22,6 @@
+ 	<classpathentry kind="lib" path="WEB-INF/lib/ehcache-1.1.jar"/>
+ 	<classpathentry kind="lib" path="WEB-INF/lib/jboss-cache-1.2.4.jar"/>
+ 	<classpathentry kind="lib" path="WEB-INF/lib/jgroups-all-2.2.9-beta2.jar"/>
+-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+ 	<classpathentry kind="lib" path="WEB-INF/lib/c3p0-0.9.1-pre9.jar"/>
+ 	<classpathentry kind="lib" path="WEB-INF/lib/mysql-connector-java-5.0.3-bin.jar"/>
+ 	<classpathentry kind="lib" path="WEB-INF/lib/freemarker-2.3.9.jar"/>
+@@ -36,5 +34,9 @@
+ 	<classpathentry kind="var" path="TOMCAT_HOME/lib/jsp-api.jar"/>
+ 	<classpathentry kind="var" path="TOMCAT_HOME/lib/el-api.jar"/>
+ 	<classpathentry kind="var" path="TOMCAT_HOME/lib/annotations-api.jar"/>
++	<classpathentry kind="var" path="TOMCAT_HOME"/>
++	<classpathentry kind="lib" path="/home/jtoman/sources/rafaelsteil-jforum2-190d28b/WEB-INF/lib/staccato.jar"/>
++	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
++	<classpathentry kind="lib" path="/conf-update/phosphor.jar"/>
+ 	<classpathentry kind="output" path="WEB-INF/classes"/>
+ </classpath>
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/.settings/org.eclipse.jdt.core.prefs rafaelsteil-jforum2-190d28b/.settings/org.eclipse.jdt.core.prefs
+--- jforum-clean/.settings/org.eclipse.jdt.core.prefs	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/.settings/org.eclipse.jdt.core.prefs	2015-02-12 15:59:10.000000000 -0800
+@@ -1,12 +1,95 @@
+-#Sun Feb 28 18:49:47 BRT 2010
+ eclipse.preferences.version=1
++org.eclipse.jdt.core.compiler.annotation.missingNonNullByDefaultAnnotation=ignore
++org.eclipse.jdt.core.compiler.annotation.nonnull=org.eclipse.jdt.annotation.NonNull
++org.eclipse.jdt.core.compiler.annotation.nonnullbydefault=org.eclipse.jdt.annotation.NonNullByDefault
++org.eclipse.jdt.core.compiler.annotation.nullable=org.eclipse.jdt.annotation.Nullable
++org.eclipse.jdt.core.compiler.annotation.nullanalysis=disabled
+ org.eclipse.jdt.core.compiler.codegen.inlineJsrBytecode=enabled
+-org.eclipse.jdt.core.compiler.codegen.targetPlatform=1.4
++org.eclipse.jdt.core.compiler.codegen.targetPlatform=1.5
+ org.eclipse.jdt.core.compiler.codegen.unusedLocal=preserve
+-org.eclipse.jdt.core.compiler.compliance=1.4
++org.eclipse.jdt.core.compiler.compliance=1.5
+ org.eclipse.jdt.core.compiler.debug.lineNumber=generate
+ org.eclipse.jdt.core.compiler.debug.localVariable=generate
+ org.eclipse.jdt.core.compiler.debug.sourceFile=generate
++org.eclipse.jdt.core.compiler.problem.annotationSuperInterface=warning
+ org.eclipse.jdt.core.compiler.problem.assertIdentifier=error
+-org.eclipse.jdt.core.compiler.problem.enumIdentifier=warning
+-org.eclipse.jdt.core.compiler.source=1.4
++org.eclipse.jdt.core.compiler.problem.autoboxing=ignore
++org.eclipse.jdt.core.compiler.problem.comparingIdentical=warning
++org.eclipse.jdt.core.compiler.problem.deadCode=warning
++org.eclipse.jdt.core.compiler.problem.deprecation=ignore
++org.eclipse.jdt.core.compiler.problem.deprecationInDeprecatedCode=disabled
++org.eclipse.jdt.core.compiler.problem.deprecationWhenOverridingDeprecatedMethod=disabled
++org.eclipse.jdt.core.compiler.problem.discouragedReference=warning
++org.eclipse.jdt.core.compiler.problem.emptyStatement=ignore
++org.eclipse.jdt.core.compiler.problem.enumIdentifier=error
++org.eclipse.jdt.core.compiler.problem.explicitlyClosedAutoCloseable=ignore
++org.eclipse.jdt.core.compiler.problem.fallthroughCase=ignore
++org.eclipse.jdt.core.compiler.problem.fatalOptionalError=disabled
++org.eclipse.jdt.core.compiler.problem.fieldHiding=ignore
++org.eclipse.jdt.core.compiler.problem.finalParameterBound=ignore
++org.eclipse.jdt.core.compiler.problem.finallyBlockNotCompletingNormally=warning
++org.eclipse.jdt.core.compiler.problem.forbiddenReference=error
++org.eclipse.jdt.core.compiler.problem.hiddenCatchBlock=warning
++org.eclipse.jdt.core.compiler.problem.includeNullInfoFromAsserts=disabled
++org.eclipse.jdt.core.compiler.problem.incompatibleNonInheritedInterfaceMethod=warning
++org.eclipse.jdt.core.compiler.problem.incompleteEnumSwitch=warning
++org.eclipse.jdt.core.compiler.problem.indirectStaticAccess=ignore
++org.eclipse.jdt.core.compiler.problem.localVariableHiding=ignore
++org.eclipse.jdt.core.compiler.problem.methodWithConstructorName=warning
++org.eclipse.jdt.core.compiler.problem.missingDefaultCase=ignore
++org.eclipse.jdt.core.compiler.problem.missingDeprecatedAnnotation=ignore
++org.eclipse.jdt.core.compiler.problem.missingEnumCaseDespiteDefault=disabled
++org.eclipse.jdt.core.compiler.problem.missingHashCodeMethod=ignore
++org.eclipse.jdt.core.compiler.problem.missingOverrideAnnotation=ignore
++org.eclipse.jdt.core.compiler.problem.missingOverrideAnnotationForInterfaceMethodImplementation=enabled
++org.eclipse.jdt.core.compiler.problem.missingSerialVersion=ignore
++org.eclipse.jdt.core.compiler.problem.missingSynchronizedOnInheritedMethod=ignore
++org.eclipse.jdt.core.compiler.problem.noEffectAssignment=warning
++org.eclipse.jdt.core.compiler.problem.noImplicitStringConversion=warning
++org.eclipse.jdt.core.compiler.problem.nonExternalizedStringLiteral=ignore
++org.eclipse.jdt.core.compiler.problem.nullAnnotationInferenceConflict=error
++org.eclipse.jdt.core.compiler.problem.nullReference=warning
++org.eclipse.jdt.core.compiler.problem.nullSpecViolation=error
++org.eclipse.jdt.core.compiler.problem.nullUncheckedConversion=warning
++org.eclipse.jdt.core.compiler.problem.overridingPackageDefaultMethod=warning
++org.eclipse.jdt.core.compiler.problem.parameterAssignment=ignore
++org.eclipse.jdt.core.compiler.problem.possibleAccidentalBooleanAssignment=ignore
++org.eclipse.jdt.core.compiler.problem.potentialNullReference=ignore
++org.eclipse.jdt.core.compiler.problem.potentiallyUnclosedCloseable=ignore
++org.eclipse.jdt.core.compiler.problem.rawTypeReference=ignore
++org.eclipse.jdt.core.compiler.problem.redundantNullAnnotation=warning
++org.eclipse.jdt.core.compiler.problem.redundantNullCheck=ignore
++org.eclipse.jdt.core.compiler.problem.redundantSpecificationOfTypeArguments=ignore
++org.eclipse.jdt.core.compiler.problem.redundantSuperinterface=ignore
++org.eclipse.jdt.core.compiler.problem.reportMethodCanBePotentiallyStatic=ignore
++org.eclipse.jdt.core.compiler.problem.reportMethodCanBeStatic=ignore
++org.eclipse.jdt.core.compiler.problem.specialParameterHidingField=disabled
++org.eclipse.jdt.core.compiler.problem.staticAccessReceiver=warning
++org.eclipse.jdt.core.compiler.problem.suppressOptionalErrors=disabled
++org.eclipse.jdt.core.compiler.problem.suppressWarnings=enabled
++org.eclipse.jdt.core.compiler.problem.syntheticAccessEmulation=ignore
++org.eclipse.jdt.core.compiler.problem.typeParameterHiding=warning
++org.eclipse.jdt.core.compiler.problem.unavoidableGenericTypeProblems=enabled
++org.eclipse.jdt.core.compiler.problem.uncheckedTypeOperation=ignore
++org.eclipse.jdt.core.compiler.problem.unclosedCloseable=warning
++org.eclipse.jdt.core.compiler.problem.undocumentedEmptyBlock=ignore
++org.eclipse.jdt.core.compiler.problem.unhandledWarningToken=warning
++org.eclipse.jdt.core.compiler.problem.unnecessaryElse=ignore
++org.eclipse.jdt.core.compiler.problem.unnecessaryTypeCheck=ignore
++org.eclipse.jdt.core.compiler.problem.unqualifiedFieldAccess=ignore
++org.eclipse.jdt.core.compiler.problem.unusedDeclaredThrownException=ignore
++org.eclipse.jdt.core.compiler.problem.unusedDeclaredThrownExceptionExemptExceptionAndThrowable=enabled
++org.eclipse.jdt.core.compiler.problem.unusedDeclaredThrownExceptionIncludeDocCommentReference=enabled
++org.eclipse.jdt.core.compiler.problem.unusedDeclaredThrownExceptionWhenOverriding=disabled
++org.eclipse.jdt.core.compiler.problem.unusedImport=warning
++org.eclipse.jdt.core.compiler.problem.unusedLabel=warning
++org.eclipse.jdt.core.compiler.problem.unusedLocal=warning
++org.eclipse.jdt.core.compiler.problem.unusedObjectAllocation=ignore
++org.eclipse.jdt.core.compiler.problem.unusedParameter=ignore
++org.eclipse.jdt.core.compiler.problem.unusedParameterIncludeDocCommentReference=enabled
++org.eclipse.jdt.core.compiler.problem.unusedParameterWhenImplementingAbstract=disabled
++org.eclipse.jdt.core.compiler.problem.unusedParameterWhenOverridingConcrete=disabled
++org.eclipse.jdt.core.compiler.problem.unusedPrivateMember=warning
++org.eclipse.jdt.core.compiler.problem.unusedWarningToken=warning
++org.eclipse.jdt.core.compiler.problem.varargsArgumentNeedCast=warning
++org.eclipse.jdt.core.compiler.source=1.5
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/src/net/jforum/context/ResponseContext.java rafaelsteil-jforum2-190d28b/src/net/jforum/context/ResponseContext.java
+--- jforum-clean/src/net/jforum/context/ResponseContext.java	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/src/net/jforum/context/ResponseContext.java	2015-09-21 14:52:37.000000000 -0700
+@@ -43,6 +43,9 @@
+ 
+ import javax.servlet.ServletOutputStream;
+ import javax.servlet.http.Cookie;
++
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++
+ import java.io.IOException;
+ import java.io.PrintWriter;
+ 
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/src/net/jforum/context/web/WebResponseContext.java rafaelsteil-jforum2-190d28b/src/net/jforum/context/web/WebResponseContext.java
+--- jforum-clean/src/net/jforum/context/web/WebResponseContext.java	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/src/net/jforum/context/web/WebResponseContext.java	2015-12-07 17:20:50.000000000 -0800
+@@ -76,12 +76,10 @@
+ 	{
+ 		return response.containsHeader(name);
+ 	}
+-
+ 	public void setHeader(String name, String value)
+ 	{
+ 		response.setHeader(name, value);
+ 	}
+-
+ 	public void addCookie(Cookie cookie)
+ 	{
+ 		response.addCookie(cookie);
+@@ -91,7 +89,6 @@
+ 	{
+ 		return response.encodeRedirectURL(url);
+ 	}
+-
+ 	public void sendRedirect(String location) throws IOException
+ 	{
+ 		if (SystemGlobals.getBoolValue(ConfigKeys.REDIRECT_ABSOLUTE_PATHS)) {
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/src/net/jforum/dao/PostDAO.java rafaelsteil-jforum2-190d28b/src/net/jforum/dao/PostDAO.java
+--- jforum-clean/src/net/jforum/dao/PostDAO.java	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/src/net/jforum/dao/PostDAO.java	2016-03-10 15:16:47.104139059 -0800
+@@ -44,6 +44,9 @@
+ 
+ import java.util.List;
+ 
++import edu.washington.cse.instrumentation.runtime.PropagationTarget;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoPropagate;
++
+ import net.jforum.entities.Post;
+ 
+ /**
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/src/net/jforum/dao/TopicDAO.java rafaelsteil-jforum2-190d28b/src/net/jforum/dao/TopicDAO.java
+--- jforum-clean/src/net/jforum/dao/TopicDAO.java	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/src/net/jforum/dao/TopicDAO.java	2016-03-10 15:16:47.104139059 -0800
+@@ -46,6 +46,10 @@
+ import java.util.List;
+ import java.util.Map;
+ 
++import edu.washington.cse.instrumentation.runtime.PropagationTarget;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoPropagate;
++
+ import net.jforum.entities.Topic;
+ import net.jforum.entities.User;
+ import net.jforum.search.SearchArgs;
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/src/net/jforum/dao/UserDAO.java rafaelsteil-jforum2-190d28b/src/net/jforum/dao/UserDAO.java
+--- jforum-clean/src/net/jforum/dao/UserDAO.java	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/src/net/jforum/dao/UserDAO.java	2016-03-10 15:16:47.108141009 -0800
+@@ -44,6 +44,9 @@
+ 
+ import java.util.List;
+ 
++import edu.washington.cse.instrumentation.runtime.PropagationTarget;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoPropagate;
++
+ import net.jforum.entities.User;
+ 
+ /**
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/src/net/jforum/entities/Smilie.java rafaelsteil-jforum2-190d28b/src/net/jforum/entities/Smilie.java
+--- jforum-clean/src/net/jforum/entities/Smilie.java	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/src/net/jforum/entities/Smilie.java	2016-03-10 15:16:47.824490007 -0800
+@@ -44,6 +44,9 @@
+ 
+ import java.io.Serializable;
+ 
++import edu.washington.cse.instrumentation.runtime.PropagationTarget;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoPropagate;
++
+ /**
+  * @author Rafael Steil
+  * @version $Id: Smilie.java,v 1.7 2006/08/20 22:47:35 rafaelsteil Exp $
+@@ -100,6 +103,7 @@
+ 	/**
+ 	 * @param image
+ 	 */
++	@StaccatoPropagate(PropagationTarget.RECEIVER)
+ 	public void setUrl(String url) {
+ 		this.url = url;
+ 	}
+@@ -107,7 +111,14 @@
+ 	/**
+ 	 * @return
+ 	 */
++	@StaccatoPropagate(PropagationTarget.RECEIVER)
+ 	public String getDiskName() {
+ 		return this.diskName;
+ 	}
++
++	@Override
++	public String toString() {
++		return "Smilie [id=" + id + ", code=" + code + ", url=" + url
++				+ ", diskName=" + diskName + "]";
++	}
+ }
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/src/net/jforum/JForumBaseServlet.java rafaelsteil-jforum2-190d28b/src/net/jforum/JForumBaseServlet.java
+--- jforum-clean/src/net/jforum/JForumBaseServlet.java	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/src/net/jforum/JForumBaseServlet.java	2016-03-10 15:16:47.824490007 -0800
+@@ -44,6 +44,9 @@
+ 
+ import java.io.File;
+ import java.util.Date;
++import java.util.concurrent.Executor;
++import java.util.concurrent.ExecutorService;
++import java.util.concurrent.Executors;
+ 
+ import javax.servlet.ServletConfig;
+ import javax.servlet.ServletException;
+@@ -91,6 +94,7 @@
+ 			ConfigLoader.listenForChanges();
+ 			ConfigLoader.startSearchIndexer();
+ 			ConfigLoader.startSummaryJob();
++			
+ 		}
+ 		catch (Exception e) {
+ 			throw new ForumStartupException("Error while starting JForum", e);
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/src/net/jforum/repository/SmiliesRepository.java rafaelsteil-jforum2-190d28b/src/net/jforum/repository/SmiliesRepository.java
+--- jforum-clean/src/net/jforum/repository/SmiliesRepository.java	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/src/net/jforum/repository/SmiliesRepository.java	2015-12-07 17:20:50.000000000 -0800
+@@ -42,6 +42,7 @@
+  */
+ package net.jforum.repository;
+ 
++import java.util.ArrayList;
+ import java.util.Iterator;
+ import java.util.List;
+ 
+@@ -52,6 +53,7 @@
+ import net.jforum.exceptions.SmiliesLoadException;
+ import net.jforum.util.preferences.ConfigKeys;
+ import net.jforum.util.preferences.SystemGlobals;
++import edu.washington.cse.instrumentation.runtime.containers.StaccatoList;
+ 
+ /**
+  * @author Rafael Steil
+@@ -82,20 +84,22 @@
+ 			throw new SmiliesLoadException("Error while loading smilies: " + e);
+ 		}
+ 	}
+-	
+ 	public static List getSmilies()
+ 	{
+ 		List list = (List)cache.get(FQN, ENTRIES);
+ 		if (!contexted) {
++			List outputList = new StaccatoList(new ArrayList(list.size()));
+ 			String forumLink = SystemGlobals.getValue(ConfigKeys.FORUM_LINK);
+ 			
+ 			for (Iterator iter = list.iterator(); iter.hasNext(); ) {
+ 				Smilie s = (Smilie)iter.next();
+ 				s.setUrl(s.getUrl().replaceAll("#CONTEXT#", forumLink).replaceAll("\\\\", ""));
++				outputList.add(s);
+ 			}
+ 			
+-			cache.add(FQN, ENTRIES, list);
++			cache.add(FQN, ENTRIES, outputList);
+ 			contexted = true;
++			list = outputList;
+ 		}
+ 		
+ 		return list;
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/src/net/jforum/repository/Tpl.java rafaelsteil-jforum2-190d28b/src/net/jforum/repository/Tpl.java
+--- jforum-clean/src/net/jforum/repository/Tpl.java	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/src/net/jforum/repository/Tpl.java	2015-09-21 14:52:37.000000000 -0700
+@@ -46,6 +46,9 @@
+ import java.util.Iterator;
+ import java.util.Properties;
+ 
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++
+ import net.jforum.cache.CacheEngine;
+ import net.jforum.cache.Cacheable;
+ import net.jforum.exceptions.ConfigLoadException;
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/src/net/jforum/sso/SSO.java rafaelsteil-jforum2-190d28b/src/net/jforum/sso/SSO.java
+--- jforum-clean/src/net/jforum/sso/SSO.java	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/src/net/jforum/sso/SSO.java	2015-09-21 14:52:37.000000000 -0700
+@@ -42,6 +42,9 @@
+  */
+ package net.jforum.sso;
+ 
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoTrack;
+ import net.jforum.context.RequestContext;
+ import net.jforum.entities.UserSession;
+ 
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/src/net/jforum/sso/SSOUtils.java rafaelsteil-jforum2-190d28b/src/net/jforum/sso/SSOUtils.java
+--- jforum-clean/src/net/jforum/sso/SSOUtils.java	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/src/net/jforum/sso/SSOUtils.java	2015-09-21 14:52:37.000000000 -0700
+@@ -42,6 +42,7 @@
+  */
+ package net.jforum.sso;
+ 
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
+ import net.jforum.dao.DataAccessDriver;
+ import net.jforum.dao.UserDAO;
+ import net.jforum.entities.User;
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/src/net/jforum/util/ClassResolver.java rafaelsteil-jforum2-190d28b/src/net/jforum/util/ClassResolver.java
+--- jforum-clean/src/net/jforum/util/ClassResolver.java	1969-12-31 16:00:00.000000000 -0800
++++ rafaelsteil-jforum2-190d28b/src/net/jforum/util/ClassResolver.java	2016-03-10 15:16:47.592376924 -0800
+@@ -0,0 +1,12 @@
++package net.jforum.util;
++
++public class ClassResolver implements edu.washington.cse.instrumentation.runtime.StaccatoRuntime.ClassResolver {
++	public static final ClassResolver instance = new ClassResolver();
++	
++	private ClassResolver() { }
++	
++	public Class forName(String className) throws ClassNotFoundException {
++		return ClassResolver.class.getClassLoader().loadClass(className);
++	}
++
++}
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/src/net/jforum/util/ConfTrackProperties.java rafaelsteil-jforum2-190d28b/src/net/jforum/util/ConfTrackProperties.java
+--- jforum-clean/src/net/jforum/util/ConfTrackProperties.java	1969-12-31 16:00:00.000000000 -0800
++++ rafaelsteil-jforum2-190d28b/src/net/jforum/util/ConfTrackProperties.java	2015-12-07 17:20:50.000000000 -0800
+@@ -0,0 +1,30 @@
++package net.jforum.util;
++
++import java.util.Map;
++import java.util.Properties;
++
++import edu.washington.cse.instrumentation.runtime.PropagationTarget;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoPropagate;
++
++public class ConfTrackProperties extends Properties {
++	@Override
++	@StaccatoPropagate(PropagationTarget.RECEIVER)
++	public synchronized Object put(Object key, Object value) {
++		// TODO Auto-generated method stub
++		return super.put(key, value);
++	}
++	
++	@Override
++	@StaccatoPropagate(PropagationTarget.RECEIVER)
++	public synchronized void putAll(Map<? extends Object, ? extends Object> t) {
++		// TODO Auto-generated method stub
++		super.putAll(t);
++	}
++	
++	@Override
++	@StaccatoPropagate(PropagationTarget.RECEIVER)
++	public synchronized Object setProperty(String key, String value) {
++		// TODO Auto-generated method stub
++		return super.setProperty(key, value);
++	}
++}
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/src/net/jforum/util/I18n.java rafaelsteil-jforum2-190d28b/src/net/jforum/util/I18n.java
+--- jforum-clean/src/net/jforum/util/I18n.java	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/src/net/jforum/util/I18n.java	2016-03-10 15:16:47.704431516 -0800
+@@ -60,6 +60,7 @@
+ 
+ import org.apache.log4j.Logger;
+ 
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
+ import freemarker.template.SimpleSequence;
+ 
+ /**
+@@ -80,7 +81,7 @@
+ 
+ 	private static Properties localeNames = new Properties();
+ 
+-	private static String defaultName;
++	private static volatile String defaultName;
+ 
+ 	private static String baseDir;
+ 
+@@ -259,6 +260,7 @@
+ 	 *            formated according to {@link java.text.MessageFormat}specification
+ 	 * @return String With the message
+ 	 */
++	@StaccatoCheck
+ 	public static String getMessage(String localeName, String messageName, Object params[])
+ 	{
+ 		return MessageFormat.format(((Properties) messagesMap.get(localeName)).getProperty(messageName), params);
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/src/net/jforum/util/mail/Spammer.java rafaelsteil-jforum2-190d28b/src/net/jforum/util/mail/Spammer.java
+--- jforum-clean/src/net/jforum/util/mail/Spammer.java	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/src/net/jforum/util/mail/Spammer.java	2015-12-07 17:20:50.000000000 -0800
+@@ -60,6 +60,7 @@
+ import net.jforum.JForumExecutionContext;
+ import net.jforum.entities.User;
+ import net.jforum.exceptions.MailException;
++import net.jforum.util.ConfTrackProperties;
+ import net.jforum.util.preferences.ConfigKeys;
+ import net.jforum.util.preferences.SystemGlobals;
+ 
+@@ -87,7 +88,7 @@
+ 	private String username;
+ 	private String password;
+ 	
+-	private Properties mailProps = new Properties();
++	private Properties mailProps = new ConfTrackProperties();
+ 	private MimeMessage message;
+ 	private List users = new ArrayList();
+ 	private String messageId;
+@@ -124,7 +125,6 @@
+ 		messageFormat = SystemGlobals.getValue(ConfigKeys.MAIL_MESSSAGE_FORMAT).equals("html") 
+ 			? MESSAGE_HTML
+ 			: MESSAGE_TEXT;
+-
+ 		this.session = Session.getInstance(mailProps);
+ 	}
+ 
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/src/net/jforum/util/preferences/SystemGlobals.java rafaelsteil-jforum2-190d28b/src/net/jforum/util/preferences/SystemGlobals.java
+--- jforum-clean/src/net/jforum/util/preferences/SystemGlobals.java	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/src/net/jforum/util/preferences/SystemGlobals.java	2016-03-10 17:40:31.689959518 -0800
+@@ -62,6 +62,8 @@
+ 
+ import org.apache.log4j.Logger;
+ 
++import edu.washington.cse.instrumentation.runtime.TaintHelper;
++
+ /**
+  * <p>Store global configurations used in the system.
+  * This is an helper class used to access the values
+@@ -152,7 +154,7 @@
+ 	 * */
+ 	public static void setValue(String field, String value)
+ 	{
+-		globals.installation.put(field, value);
++		TaintHelper.setNewProp(field, value, globals.installation);
+ 		globals.expander.clearCache();
+ 	}
+ 	
+@@ -209,7 +211,7 @@
+ 		try
+ 		{
+ 			FileInputStream input = new FileInputStream(file);
+-			globals.installation.load(input);
++			TaintHelper.loadProperties(input, globals.installation);
+ 			input.close();
+ 		}
+ 		catch (IOException e)
+@@ -298,7 +300,7 @@
+ 	 */
+ 	public static boolean getBoolValue(String field)
+ 	{
+-		return "true".equals(getValue(field));
++		return Boolean.parseBoolean(getValue(field));
+ 	}
+ 
+ 	/**
+@@ -311,15 +313,10 @@
+ 
+ 	public String getVariableValue(String field)
+ 	{
+-		String preExpansion = globals.installation.getProperty(field);
+-		
+-		if (preExpansion == null) {
+-			preExpansion = this.defaults.getProperty(field);
+-
++		String preExpansion = TaintHelper.getProp(field, globals.installation, globals.defaults.getProperty(field));
+ 			if (preExpansion == null) {
+ 				return null;
+ 			}
+-		}
+ 
+ 		return expander.expandVariables(preExpansion);
+ 	}
+@@ -377,6 +374,7 @@
+ 		try {
+ 			fis = new FileInputStream(queryFile);
+ 			queries.load(fis);
++//			TaintHelper.loadProperties(fis, queries);
+ 		}
+ 		catch (IOException e) {
+ 			throw new ForumException(e);
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/src/net/jforum/util/preferences/VariableExpander.java rafaelsteil-jforum2-190d28b/src/net/jforum/util/preferences/VariableExpander.java
+--- jforum-clean/src/net/jforum/util/preferences/VariableExpander.java	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/src/net/jforum/util/preferences/VariableExpander.java	2015-12-07 17:20:50.000000000 -0800
+@@ -45,6 +45,9 @@
+ import java.util.HashMap;
+ import java.util.Map;
+ 
++import edu.washington.cse.instrumentation.runtime.PropagationTarget;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoPropagate;
++
+ /**
+  * @author Pieter
+  * @author Rafael Steil
+@@ -71,7 +74,7 @@
+ 	{
+ 		cache.clear();
+ 	}
+-	
++	@StaccatoPropagate(PropagationTarget.RETURN)
+ 	public String expandVariables(String source)
+ 	{
+ 		String result = (String)this.cache.get(source);
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/src/net/jforum/util/SafeHtml.java rafaelsteil-jforum2-190d28b/src/net/jforum/util/SafeHtml.java
+--- jforum-clean/src/net/jforum/util/SafeHtml.java	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/src/net/jforum/util/SafeHtml.java	2016-03-10 17:40:31.689959518 -0800
+@@ -58,6 +58,12 @@
+ import org.htmlparser.lexer.Lexer;
+ import org.htmlparser.nodes.TextNode;
+ 
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.PropagationTarget;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoPropagate;
++import edu.washington.cse.instrumentation.runtime.containers.StaccatoSet;
++
+ /**
+  * Process text with html and remove possible malicious tags and attributes.
+  * Work based on tips from Amit Klein and the following documents:
+@@ -70,26 +76,36 @@
+  */
+ public class SafeHtml 
+ {
+-	private static Set welcomeTags;
+-	private static Set welcomeAttributes;
+-	private static Set allowedProtocols;
++	private volatile static Set welcomeTags;
++	private volatile static Set welcomeAttributes;
++	private volatile static Set allowedProtocols;
+ 	
+ 	static {
+ 		welcomeTags = new HashSet();
+ 		welcomeAttributes = new HashSet();
+ 		allowedProtocols = new HashSet();
+ 		
+-		splitAndTrim(ConfigKeys.HTML_TAGS_WELCOME, welcomeTags);
+-		splitAndTrim(ConfigKeys.HTML_ATTRIBUTES_WELCOME, welcomeAttributes);
+-		splitAndTrim(ConfigKeys.HTML_LINKS_ALLOW_PROTOCOLS, allowedProtocols);
++		welcomeTags = splitAndTrim(SystemGlobals.getValue(ConfigKeys.HTML_TAGS_WELCOME));
++		welcomeAttributes = splitAndTrim(SystemGlobals.getValue(ConfigKeys.HTML_ATTRIBUTES_WELCOME));
++		allowedProtocols = splitAndTrim(SystemGlobals.getValue(ConfigKeys.HTML_LINKS_ALLOW_PROTOCOLS));
++	}
++	
++	public static Object __staccato_update_field_static(Set failingProps, String fieldName, Object oldObj, RuntimeException e) {
++		if(fieldName.equals("welcomeTags")) {
++			return welcomeTags = splitAndTrim(ConfigKeys.HTML_TAGS_WELCOME); 
++		} else {
++			throw e;
++		}
+ 	}
+ 	
+-	private static void splitAndTrim(String s, Set data)
++	@StaccatoPropagate(PropagationTarget.RETURN)
++	private static Set splitAndTrim(String s)
+ 	{
+-		String s1 = SystemGlobals.getValue(s);
++		Set data = new StaccatoSet(new HashSet());
++		String s1 = s;
+ 		
+ 		if (s1 == null) {
+-			return;
++			return data;
+ 		}
+ 		
+ 		String[] tags = s1.toUpperCase().split(",");
+@@ -97,6 +113,7 @@
+ 		for (int i = 0; i < tags.length; i++) {
+ 			data.add(tags[i].trim());
+ 		}
++		return data;
+ 	}
+ 	
+ 	/**
+@@ -132,6 +149,11 @@
+ 		return sb.toString();
+ 	}
+ 	
++	@StaccatoCheck(CheckLevel.STRICT)	
++	public Set getWelcomeTags() {
++		return welcomeTags;
++	}
++	
+ 	/**
+ 	 * Given an input, makes it safe for HTML displaying. 
+ 	 * Removes any not allowed HTML tag or attribute, as well
+@@ -200,7 +222,7 @@
+ 	{
+ 		Tag tag = (Tag)node;
+ 
+-		if (!welcomeTags.contains(tag.getTagName())) {
++		if (!getWelcomeTags().contains(tag.getTagName())) {
+ 			return false;
+ 		}
+ 		
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/src/net/jforum/view/admin/AttachmentsAction.java rafaelsteil-jforum2-190d28b/src/net/jforum/view/admin/AttachmentsAction.java
+--- jforum-clean/src/net/jforum/view/admin/AttachmentsAction.java	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/src/net/jforum/view/admin/AttachmentsAction.java	2016-03-10 17:40:31.689959518 -0800
+@@ -55,11 +55,14 @@
+ import net.jforum.util.preferences.ConfigKeys;
+ import net.jforum.util.preferences.SystemGlobals;
+ import net.jforum.util.preferences.TemplateKeys;
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
+ 
+ /**
+  * @author Rafael Steil
+  * @version $Id: AttachmentsAction.java,v 1.16 2006/08/20 22:47:45 rafaelsteil Exp $
+  */
++@StaccatoCheck(CheckLevel.NONE)
+ public class AttachmentsAction extends AdminCommand
+ {
+ 	public void configurations()
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/src/net/jforum/view/admin/ConfigAction.java rafaelsteil-jforum2-190d28b/src/net/jforum/view/admin/ConfigAction.java
+--- jforum-clean/src/net/jforum/view/admin/ConfigAction.java	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/src/net/jforum/view/admin/ConfigAction.java	2016-03-10 15:16:47.592376924 -0800
+@@ -64,12 +64,16 @@
+ import net.jforum.util.preferences.ConfigKeys;
+ import net.jforum.util.preferences.SystemGlobals;
+ import net.jforum.util.preferences.TemplateKeys;
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.TaintHelper;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
+ import freemarker.template.SimpleHash;
+ 
+ /**
+  * @author Rafael Steil
+  * @version $Id: ConfigAction.java,v 1.22 2008/01/23 01:27:16 rafaelsteil Exp $
+  */
++@StaccatoCheck(CheckLevel.NONE)
+ public class ConfigAction extends AdminCommand 
+ {
+ 	public ConfigAction() {}
+@@ -146,15 +150,19 @@
+ 
+ 	void updateData(Properties p)
+ 	{
++		TaintHelper.startUpdate(ConfigKeys.TOPICS_PER_PAGE, ConfigKeys.I18N_DEFAULT, ConfigKeys.TOPICS_PER_PAGE);
++		try {
+ 		int oldTopicsPerPage = SystemGlobals.getIntValue(ConfigKeys.TOPICS_PER_PAGE);
+ 
+ 		for (Iterator iter = p.entrySet().iterator(); iter.hasNext(); ) {
+ 			Map.Entry entry = (Map.Entry)iter.next();
+-			
++				if(SystemGlobals.getValue((String)entry.getKey()).equals(entry.getValue())) {
++					continue;
++				}
+ 			SystemGlobals.setValue((String)entry.getKey(), (String)entry.getValue());
+ 		}
+ 		
+-		SystemGlobals.saveInstallation();
++//			SystemGlobals.saveInstallation();
+ 		I18n.changeBoardDefault(SystemGlobals.getValue(ConfigKeys.I18N_DEFAULT));
+ 		
+ 		// If topicsPerPage has changed, force a reload in all forums
+@@ -170,6 +178,9 @@
+ 				}
+ 			}
+ 		}
++		} finally {
++			TaintHelper.endUpdate(ConfigKeys.TOPICS_PER_PAGE, ConfigKeys.I18N_DEFAULT, ConfigKeys.TOPICS_PER_PAGE);
++		}
+ 	}
+ 	
+ 	private String safeValue(String name, String value) 
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/src/net/jforum/view/forum/common/PostCommon.java rafaelsteil-jforum2-190d28b/src/net/jforum/view/forum/common/PostCommon.java
+--- jforum-clean/src/net/jforum/view/forum/common/PostCommon.java	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/src/net/jforum/view/forum/common/PostCommon.java	2016-03-10 15:16:47.824490007 -0800
+@@ -95,9 +95,7 @@
+ 		post.setText(safeHtml.makeSafe(post.getText()));
+ 		
+ 		processText(post);
+-		
+ 		post.setText(safeHtml.ensureAllAttributesAreSafe(post.getText()));
+-		
+ 		return post;
+ 	}
+ 	
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/src/net/jforum/view/forum/common/ViewCommon.java rafaelsteil-jforum2-190d28b/src/net/jforum/view/forum/common/ViewCommon.java
+--- jforum-clean/src/net/jforum/view/forum/common/ViewCommon.java	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/src/net/jforum/view/forum/common/ViewCommon.java	2015-09-21 14:52:37.000000000 -0700
+@@ -57,6 +57,8 @@
+ import net.jforum.util.preferences.ConfigKeys;
+ import net.jforum.util.preferences.SystemGlobals;
+ import net.jforum.util.preferences.TemplateKeys;
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
+ import freemarker.template.SimpleHash;
+ 
+ /**
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/tests/core/net/jforum/http/FakeHttpRequest.java rafaelsteil-jforum2-190d28b/tests/core/net/jforum/http/FakeHttpRequest.java
+--- jforum-clean/tests/core/net/jforum/http/FakeHttpRequest.java	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/tests/core/net/jforum/http/FakeHttpRequest.java	2015-05-30 20:56:36.000000000 -0700
+@@ -46,17 +46,26 @@
+ import java.io.IOException;
+ import java.io.UnsupportedEncodingException;
+ import java.security.Principal;
++import java.util.Collection;
+ import java.util.Enumeration;
+ import java.util.HashMap;
+ import java.util.Hashtable;
+ import java.util.Locale;
+ import java.util.Map;
+ 
++import javax.servlet.AsyncContext;
++import javax.servlet.DispatcherType;
+ import javax.servlet.RequestDispatcher;
++import javax.servlet.ServletContext;
++import javax.servlet.ServletException;
+ import javax.servlet.ServletInputStream;
++import javax.servlet.ServletRequest;
++import javax.servlet.ServletResponse;
+ import javax.servlet.http.Cookie;
+ import javax.servlet.http.HttpServletRequest;
++import javax.servlet.http.HttpServletResponse;
+ import javax.servlet.http.HttpSession;
++import javax.servlet.http.Part;
+ 
+ /**
+  * @author Rafael Steil
+@@ -275,4 +284,55 @@
+ 		
+ 
+ 	}
++	public AsyncContext getAsyncContext() {
++		// TODO Auto-generated method stub
++		return null;
++	}
++	public DispatcherType getDispatcherType() {
++		// TODO Auto-generated method stub
++		return null;
++	}
++	public ServletContext getServletContext() {
++		// TODO Auto-generated method stub
++		return null;
++	}
++	public boolean isAsyncStarted() {
++		// TODO Auto-generated method stub
++		return false;
++	}
++	public boolean isAsyncSupported() {
++		// TODO Auto-generated method stub
++		return false;
++	}
++	public AsyncContext startAsync() {
++		// TODO Auto-generated method stub
++		return null;
++	}
++	public AsyncContext startAsync(ServletRequest arg0, ServletResponse arg1) {
++		// TODO Auto-generated method stub
++		return null;
++	}
++	public boolean authenticate(HttpServletResponse arg0) throws IOException,
++			ServletException {
++		// TODO Auto-generated method stub
++		return false;
++	}
++	public Part getPart(String arg0) throws IOException, IllegalStateException,
++			ServletException {
++		// TODO Auto-generated method stub
++		return null;
++	}
++	public Collection<Part> getParts() throws IOException,
++			IllegalStateException, ServletException {
++		// TODO Auto-generated method stub
++		return null;
++	}
++	public void login(String arg0, String arg1) throws ServletException {
++		// TODO Auto-generated method stub
++		
++	}
++	public void logout() throws ServletException {
++		// TODO Auto-generated method stub
++		
++	}
+ }
+diff -r -u -x .git -x '*.class' -x '*.jar' -N -w -b jforum-clean/tests/core/net/jforum/http/FakeHttpResponse.java rafaelsteil-jforum2-190d28b/tests/core/net/jforum/http/FakeHttpResponse.java
+--- jforum-clean/tests/core/net/jforum/http/FakeHttpResponse.java	2010-10-05 09:12:09.000000000 -0700
++++ rafaelsteil-jforum2-190d28b/tests/core/net/jforum/http/FakeHttpResponse.java	2015-05-30 20:56:27.000000000 -0700
+@@ -47,6 +47,7 @@
+ import javax.servlet.http.HttpServletResponse;
+ import java.io.IOException;
+ import java.io.PrintWriter;
++import java.util.Collection;
+ import java.util.Locale;
+ 
+ /**
+@@ -218,4 +219,24 @@
+     {
+         return null;  //To change body of implemented methods use File | Settings | File Templates.
+     }
++
++	public String getHeader(String arg0) {
++		// TODO Auto-generated method stub
++		return null;
++	}
++
++	public Collection<String> getHeaderNames() {
++		// TODO Auto-generated method stub
++		return null;
++	}
++
++	public Collection<String> getHeaders(String arg0) {
++		// TODO Auto-generated method stub
++		return null;
++	}
++
++	public int getStatus() {
++		// TODO Auto-generated method stub
++		return 0;
++	}
+ }

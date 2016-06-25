@@ -1,0 +1,1011 @@
+diff -r -u -x .git -N -w -b subsonic-orig/subsonic-main/.classpath subsonic-code/subsonic-main/.classpath
+--- subsonic-orig/subsonic-main/.classpath	2015-05-11 11:08:04.000000000 -0700
++++ subsonic-code/subsonic-main/.classpath	2015-11-25 16:28:45.000000000 -0800
+@@ -10,11 +10,12 @@
+   <classpathentry kind="var" path="M2_REPO/javax/servlet/jstl/1.1.2/jstl-1.1.2.jar"/>
+   <classpathentry kind="var" path="M2_REPO/javax/xml/stream/stax-api/1.0-2/stax-api-1.0-2.jar"/>
+   <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+-  <classpathentry kind="src" path="/subsonic-rest-api"/>
+-  <classpathentry kind="src" path="/subsonic-sonos-api"/>
++  <classpathentry kind="var" path="M2_REPO/net/sourceforge/subsonic/subsonic-rest-api/5.2.1/subsonic-rest-api-5.2.1.jar"/>
++  <classpathentry kind="var" path="M2_REPO/net/sourceforge/subsonic/subsonic-sonos-api/5.2.1/subsonic-sonos-api-5.2.1.jar"/>
+   <classpathentry kind="var" path="M2_REPO/org/springframework/spring/2.5.6/spring-2.5.6.jar"/>
+   <classpathentry kind="var" path="M2_REPO/commons-logging/commons-logging/1.1.1/commons-logging-1.1.1.jar"/>
+   <classpathentry kind="var" path="M2_REPO/uwplse/staccato/1.0.0/staccato-1.0.0.jar"/>
++  <classpathentry kind="var" path="M2_REPO/psl/phosphor/0.0.2/phosphor-0.0.2.jar"/>
+   <classpathentry kind="var" path="M2_REPO/org/springframework/spring-webmvc/2.5.6/spring-webmvc-2.5.6.jar"/>
+   <classpathentry kind="var" path="M2_REPO/org/acegisecurity/acegi-security/1.0.5/acegi-security-1.0.5.jar"/>
+   <classpathentry kind="var" path="M2_REPO/commons-lang/commons-lang/2.1/commons-lang-2.1.jar"/>
+diff -r -u -x .git -N -w -b subsonic-orig/subsonic-main/pom.xml subsonic-code/subsonic-main/pom.xml
+--- subsonic-orig/subsonic-main/pom.xml	2015-05-11 11:11:14.000000000 -0700
++++ subsonic-code/subsonic-main/pom.xml	2016-03-10 17:40:24.022223866 -0800
+@@ -32,6 +32,19 @@
+             <artifactId>spring</artifactId>
+             <version>2.5.6</version>
+         </dependency>
++
++		<dependency>
++		  <groupId>uwplse</groupId>
++		  <artifactId>staccato</artifactId>
++		  <version>1.0.0</version>
++		</dependency>
++
++		<dependency>
++		  <groupId>psl</groupId>
++		  <artifactId>phosphor</artifactId>
++		  <version>0.0.2</version>
++		</dependency>
++
+         <dependency>
+             <groupId>org.springframework</groupId>
+             <artifactId>spring-webmvc</artifactId>
+diff -r -u -x .git -N -w -b subsonic-orig/subsonic-main/.project subsonic-code/subsonic-main/.project
+--- subsonic-orig/subsonic-main/.project	2015-05-11 11:08:04.000000000 -0700
++++ subsonic-code/subsonic-main/.project	2015-11-25 16:28:45.000000000 -0800
+@@ -2,10 +2,7 @@
+ <projectDescription>
+   <name>subsonic-main</name>
+   <comment>NO_M2ECLIPSE_SUPPORT: Project files created with the maven-eclipse-plugin are not supported in M2Eclipse.</comment>
+-  <projects>
+-    <project>subsonic-rest-api</project>
+-    <project>subsonic-sonos-api</project>
+-  </projects>
++  <projects/>
+   <buildSpec>
+     <buildCommand>
+       <name>org.eclipse.jdt.core.javabuilder</name>
+diff -r -u -x .git -N -w -b subsonic-orig/subsonic-main/src/main/java/net/sourceforge/subsonic/controller/AdvancedSettingsController.java subsonic-code/subsonic-main/src/main/java/net/sourceforge/subsonic/controller/AdvancedSettingsController.java
+--- subsonic-orig/subsonic-main/src/main/java/net/sourceforge/subsonic/controller/AdvancedSettingsController.java	2015-05-11 11:10:19.000000000 -0700
++++ subsonic-code/subsonic-main/src/main/java/net/sourceforge/subsonic/controller/AdvancedSettingsController.java	2015-05-11 11:35:59.000000000 -0700
+@@ -70,7 +70,8 @@
+         try {
+             settingsService.setStreamPort(Integer.parseInt(command.getStreamPort()));
+         } catch (NumberFormatException x) { /* Intentionally ignored. */ }
+-
++        settingsService.startLdapUpdate();
++        try {
+         settingsService.setLdapEnabled(command.isLdapEnabled());
+         settingsService.setLdapUrl(command.getLdapUrl());
+         settingsService.setLdapSearchFilter(command.getLdapSearchFilter());
+@@ -82,6 +83,10 @@
+         }
+ 
+         settingsService.save();
++        } finally {
++        	settingsService.endLdapUpdate();
++        }
++        
+     }
+ 
+     public void setSettingsService(SettingsService settingsService) {
+diff -r -u -x .git -N -w -b subsonic-orig/subsonic-main/src/main/java/net/sourceforge/subsonic/controller/GeneralSettingsController.java subsonic-code/subsonic-main/src/main/java/net/sourceforge/subsonic/controller/GeneralSettingsController.java
+--- subsonic-orig/subsonic-main/src/main/java/net/sourceforge/subsonic/controller/GeneralSettingsController.java	2015-05-11 11:08:00.000000000 -0700
++++ subsonic-code/subsonic-main/src/main/java/net/sourceforge/subsonic/controller/GeneralSettingsController.java	2016-03-10 17:40:24.030227766 -0800
+@@ -22,17 +22,21 @@
+ 
+ import javax.servlet.http.HttpServletRequest;
+ 
+-import org.springframework.web.servlet.mvc.SimpleFormController;
+-
+ import net.sourceforge.subsonic.command.GeneralSettingsCommand;
+ import net.sourceforge.subsonic.domain.Theme;
+ import net.sourceforge.subsonic.service.SettingsService;
+ 
++import org.springframework.web.servlet.mvc.SimpleFormController;
++
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++
+ /**
+  * Controller for the page used to administrate general settings.
+  *
+  * @author Sindre Mehus
+  */
++@StaccatoCheck(CheckLevel.NONE)
+ public class GeneralSettingsController extends SimpleFormController {
+ 
+     private SettingsService settingsService;
+diff -r -u -x .git -N -w -b subsonic-orig/subsonic-main/src/main/java/net/sourceforge/subsonic/HavocThread.java subsonic-code/subsonic-main/src/main/java/net/sourceforge/subsonic/HavocThread.java
+--- subsonic-orig/subsonic-main/src/main/java/net/sourceforge/subsonic/HavocThread.java	1969-12-31 16:00:00.000000000 -0800
++++ subsonic-code/subsonic-main/src/main/java/net/sourceforge/subsonic/HavocThread.java	2016-03-05 21:49:14.452827497 -0800
+@@ -0,0 +1,89 @@
++package net.sourceforge.subsonic;
++
++import java.util.Random;
++import java.util.concurrent.ExecutorService;
++import java.util.concurrent.Executors;
++import javax.servlet.ServletContextEvent;
++import javax.servlet.ServletContextListener;
++import net.sourceforge.subsonic.service.SettingsService;
++import org.springframework.web.context.WebApplicationContext;
++import org.springframework.web.context.support.WebApplicationContextUtils;
++
++public class HavocThread implements ServletContextListener {
++	private SettingsService settings;
++	private ExecutorService executor;
++
++	@Override
++	public void contextDestroyed(ServletContextEvent arg0) {
++		if(this.executor != null) {
++			this.executor.shutdownNow();
++		}
++	}
++
++	@Override
++	public void contextInitialized(ServletContextEvent event) {
++		if(System.getProperty("staccato.havoc") == null) {
++			return;
++		}
++		final WebApplicationContext springContext = WebApplicationContextUtils.getWebApplicationContext(event.getServletContext());
++		this.settings = (SettingsService)springContext.getBean("settingsService", SettingsService.class);
++		this.executor = Executors.newCachedThreadPool();
++		for(int i = 0; i < Integer.parseInt(System.getProperty("staccato.havoc")); i++) {
++			this.executor.submit(new HavocThreadRunnable(i));
++		}
++	}
++
++	private final String[][] updateGroups = new String[][]{
++		new String[]{
++			"ldap://localhost:389/dc=nodomain",
++			"(uid={0})",
++			"cn=admin,dc=nodomain",
++			"foobar"
++		},
++		new String[]{
++			"ldap://localhost:389/ou=Users,dc=nodomain",
++			"(&(objectClass=account)(uid={0}))",
++			"cn=root,dc=nodomain",
++			"fizzbizz"
++		},
++		new String[]{
++			"ldap://localhost:389/ou=Users,dc=nodomain",
++			"(&(objectClass=account)(uid={0}))",
++			"cn=admin,dc=nodomain",
++			"foobar"
++		},
++	};
++	
++	private class HavocThreadRunnable implements Runnable {
++		private int id;
++		public HavocThreadRunnable(int i) {
++			this.id = i;
++		}
++		@Override
++		public void run() {
++			Random r = new Random(id);
++			while(true) {
++				try {
++					Thread.sleep(r.nextInt(400));
++				} catch (InterruptedException e) {
++					break;
++				}
++				int applyNext = r.nextInt(updateGroups.length);
++				final String[] vals = updateGroups[applyNext];
++				settings.startLdapUpdate();
++				try {
++					settings.setLdapUrl(new String(vals[0]));
++					settings.setLdapSearchFilter(new String(vals[1]));
++					settings.setLdapManagerDn(new String(vals[2]));
++					settings.setLdapManagerPassword(new String(vals[3]));
++					settings.save(true);
++				} catch(Throwable t) {
++					t.printStackTrace(System.out);
++					break;
++				} finally {
++					settings.endLdapUpdate();
++				}
++			}
++		}
++	}
++}
+diff -r -u -x .git -N -w -b subsonic-orig/subsonic-main/src/main/java/net/sourceforge/subsonic/ldap/SubsonicLdapBindAuthenticator.java subsonic-code/subsonic-main/src/main/java/net/sourceforge/subsonic/ldap/SubsonicLdapBindAuthenticator.java
+--- subsonic-orig/subsonic-main/src/main/java/net/sourceforge/subsonic/ldap/SubsonicLdapBindAuthenticator.java	2015-05-11 11:10:19.000000000 -0700
++++ subsonic-code/subsonic-main/src/main/java/net/sourceforge/subsonic/ldap/SubsonicLdapBindAuthenticator.java	2016-03-10 17:40:24.034229716 -0800
+@@ -18,10 +18,14 @@
+  */
+ package net.sourceforge.subsonic.ldap;
+ 
++import java.util.HashMap;
++import java.util.Map;
++
+ import net.sourceforge.subsonic.Logger;
+ import net.sourceforge.subsonic.domain.User;
+ import net.sourceforge.subsonic.service.SecurityService;
+ import net.sourceforge.subsonic.service.SettingsService;
++
+ import org.acegisecurity.BadCredentialsException;
+ import org.acegisecurity.ldap.DefaultInitialDirContextFactory;
+ import org.acegisecurity.ldap.search.FilterBasedLdapUserSearch;
+@@ -30,8 +34,8 @@
+ import org.acegisecurity.userdetails.ldap.LdapUserDetails;
+ import org.apache.commons.lang.StringUtils;
+ 
+-import java.util.HashMap;
+-import java.util.Map;
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
+ 
+ /**
+  * LDAP authenticator which uses a delegate {@link BindAuthenticator}, and which
+@@ -49,8 +53,9 @@
+     private long authenticatorTimestamp;
+     private BindAuthenticator delegateAuthenticator;
+ 
++    @StaccatoCheck(CheckLevel.STRICT)
++    // suspicious
+     public LdapUserDetails authenticate(String username, String password) {
+-
+         // LDAP authentication must be enabled on the system.
+         if (!settingsService.isLdapEnabled()) {
+             throw new BadCredentialsException("LDAP authentication disabled.");
+@@ -86,19 +91,23 @@
+         } catch (RuntimeException x) {
+             LOG.info("Failed to authenticate user '" + username + "' in LDAP.", x);
+             throw x;
++        } catch(Throwable e) {
++        	LOG.info("Failed to authenticate user '" + username + "' in LDAP.", e);
++            throw new RuntimeException("ugh", e);
+         }
+     }
+ 
+     /**
+      * Creates the delegate {@link BindAuthenticator}.
+      */
++    @StaccatoCheck(value=CheckLevel.NONE)
+     private synchronized void createDelegate() {
+ 
+         // Only create it if necessary.
+         if (delegateAuthenticator == null || authenticatorTimestamp < settingsService.getSettingsChanged()) {
+ 
+             DefaultInitialDirContextFactory contextFactory = new DefaultInitialDirContextFactory(settingsService.getLdapUrl());
+-
++//            LOG.info(((TaintCarry)(Object)contextFactory)._staccato_get_taint());
+             String managerDn = settingsService.getLdapManagerDn();
+             String managerPassword = settingsService.getLdapManagerPassword();
+             if (StringUtils.isNotEmpty(managerDn) && StringUtils.isNotEmpty(managerPassword)) {
+@@ -111,6 +120,7 @@
+             contextFactory.setExtraEnvVars(extraEnvVars);
+ 
+             FilterBasedLdapUserSearch userSearch = new FilterBasedLdapUserSearch("", settingsService.getLdapSearchFilter(), contextFactory);
++//            LOG.info(((TaintCarry)(Object)userSearch)._staccato_get_taint());
+             userSearch.setSearchSubtree(true);
+             userSearch.setDerefLinkFlag(true);
+ 
+diff -r -u -x .git -N -w -b subsonic-orig/subsonic-main/src/main/java/net/sourceforge/subsonic/service/MusicIndexService.java subsonic-code/subsonic-main/src/main/java/net/sourceforge/subsonic/service/MusicIndexService.java
+--- subsonic-orig/subsonic-main/src/main/java/net/sourceforge/subsonic/service/MusicIndexService.java	2015-05-11 11:10:19.000000000 -0700
++++ subsonic-code/subsonic-main/src/main/java/net/sourceforge/subsonic/service/MusicIndexService.java	2015-12-07 03:48:45.000000000 -0800
+@@ -33,6 +33,8 @@
+ import java.util.StringTokenizer;
+ import java.util.TreeMap;
+ 
++import edu.washington.cse.instrumentation.runtime.containers.StaccatoSet;
++
+ import net.sourceforge.subsonic.domain.Artist;
+ import net.sourceforge.subsonic.domain.MediaFile;
+ import net.sourceforge.subsonic.domain.MusicFolder;
+@@ -86,7 +88,7 @@
+ 
+     public List<MediaFile> getShortcuts(List<MusicFolder> musicFoldersToUse) {
+         List<MediaFile> result = new ArrayList<MediaFile>();
+-        for (String shortcut : settingsService.getShortcutsAsArray()) {
++        for (String shortcut : settingsService.getShortcutsAsList()) {
+             for (MusicFolder musicFolder : musicFoldersToUse) {
+                 File file = new File(musicFolder.getPath(), shortcut);
+                 if (FileUtil.exists(file)) {
+@@ -169,10 +171,11 @@
+     }
+ 
+     private List<MusicIndex.SortableArtistWithMediaFiles> createSortableArtists(List<MusicFolder> folders, boolean refresh) throws IOException {
+-        String[] ignoredArticles = settingsService.getIgnoredArticlesAsArray();
+-        String[] shortcuts = settingsService.getShortcutsAsArray();
++        List<String> ignoredArticles = settingsService.getIgnoredArticlesAsList();
++        List<String> shortcuts = settingsService.getShortcutsAsList();
+         SortedMap<String, MusicIndex.SortableArtistWithMediaFiles> artistMap = new TreeMap<String, MusicIndex.SortableArtistWithMediaFiles>();
+-        Set<String> shortcutSet = new HashSet<String>(Arrays.asList(shortcuts));
++        Set<String> shortcutSet = new StaccatoSet<String>(new HashSet<String>());
++        shortcutSet.addAll(shortcuts);
+         Collator collator = createCollator();
+ 
+         for (MusicFolder folder : folders) {
+@@ -199,7 +202,7 @@
+ 
+     private List<MusicIndex.SortableArtistWithArtist> createSortableArtists(List<Artist> artists) {
+         List<MusicIndex.SortableArtistWithArtist> result = new ArrayList<MusicIndex.SortableArtistWithArtist>();
+-        String[] ignoredArticles = settingsService.getIgnoredArticlesAsArray();
++        List<String> ignoredArticles = settingsService.getIgnoredArticlesAsList();
+         Collator collator = createCollator();
+         for (Artist artist : artists) {
+             String sortableName = createSortableName(artist.getName(), ignoredArticles);
+@@ -216,7 +219,7 @@
+         return Collator.getInstance(settingsService.getLocale());
+     }
+ 
+-    private String createSortableName(String name, String[] ignoredArticles) {
++    private String createSortableName(String name, List<String> ignoredArticles) {
+         String uppercaseName = name.toUpperCase();
+         for (String article : ignoredArticles) {
+             if (uppercaseName.startsWith(article.toUpperCase() + " ")) {
+diff -r -u -x .git -N -w -b subsonic-orig/subsonic-main/src/main/java/net/sourceforge/subsonic/service/NetworkService.java subsonic-code/subsonic-main/src/main/java/net/sourceforge/subsonic/service/NetworkService.java
+--- subsonic-orig/subsonic-main/src/main/java/net/sourceforge/subsonic/service/NetworkService.java	2015-05-11 11:08:00.000000000 -0700
++++ subsonic-code/subsonic-main/src/main/java/net/sourceforge/subsonic/service/NetworkService.java	2015-12-07 03:48:56.000000000 -0800
+@@ -27,6 +27,12 @@
+ import java.util.concurrent.ScheduledExecutorService;
+ import java.util.concurrent.TimeUnit;
+ 
++import net.sourceforge.subsonic.Logger;
++import net.sourceforge.subsonic.service.upnp.ClingRouter;
++import net.sourceforge.subsonic.service.upnp.NATPMPRouter;
++import net.sourceforge.subsonic.service.upnp.Router;
++import net.sourceforge.subsonic.util.StringUtil;
++
+ import org.apache.http.HttpResponse;
+ import org.apache.http.HttpStatus;
+ import org.apache.http.NameValuePair;
+@@ -41,12 +47,6 @@
+ import org.apache.http.params.HttpConnectionParams;
+ import org.apache.http.util.EntityUtils;
+ 
+-import net.sourceforge.subsonic.Logger;
+-import net.sourceforge.subsonic.service.upnp.ClingRouter;
+-import net.sourceforge.subsonic.service.upnp.NATPMPRouter;
+-import net.sourceforge.subsonic.service.upnp.Router;
+-import net.sourceforge.subsonic.util.StringUtil;
+-
+ /**
+  * Provides network-related services, including port forwarding on UPnP routers and
+  * URL redirection from http://xxxx.subsonic.org.
+@@ -211,9 +211,13 @@
+     }
+ 
+     private class URLRedirectionTask extends Task {
++    	public Object[] foo = new Object[1];
+ 
+         @Override
+         protected void execute() {
++        	if(foo != null) {
++        		return;
++        	}
+ 
+             boolean enable = settingsService.isUrlRedirectionEnabled();
+             HttpPost request = new HttpPost(enable ? URL_REDIRECTION_REGISTER_URL : URL_REDIRECTION_UNREGISTER_URL);
+diff -r -u -x .git -N -w -b subsonic-orig/subsonic-main/src/main/java/net/sourceforge/subsonic/service/SettingsService.java subsonic-code/subsonic-main/src/main/java/net/sourceforge/subsonic/service/SettingsService.java
+--- subsonic-orig/subsonic-main/src/main/java/net/sourceforge/subsonic/service/SettingsService.java	2015-05-11 11:10:19.000000000 -0700
++++ subsonic-code/subsonic-main/src/main/java/net/sourceforge/subsonic/service/SettingsService.java	2015-12-07 03:48:56.000000000 -0800
+@@ -40,15 +40,6 @@
+ import java.util.concurrent.ScheduledFuture;
+ import java.util.concurrent.TimeUnit;
+ 
+-import org.apache.commons.io.IOUtils;
+-import org.apache.commons.lang.StringUtils;
+-import org.apache.http.client.HttpClient;
+-import org.apache.http.client.ResponseHandler;
+-import org.apache.http.client.methods.HttpGet;
+-import org.apache.http.impl.client.BasicResponseHandler;
+-import org.apache.http.impl.client.DefaultHttpClient;
+-import org.apache.http.params.HttpConnectionParams;
+-
+ import net.sourceforge.subsonic.Logger;
+ import net.sourceforge.subsonic.dao.AvatarDao;
+ import net.sourceforge.subsonic.dao.InternetRadioDao;
+@@ -65,11 +56,22 @@
+ import net.sourceforge.subsonic.util.StringUtil;
+ import net.sourceforge.subsonic.util.Util;
+ 
++import org.apache.commons.io.IOUtils;
++import org.apache.commons.lang.StringUtils;
++
++import edu.washington.cse.instrumentation.runtime.CheckLevel;
++import edu.washington.cse.instrumentation.runtime.PropagationTarget;
++import edu.washington.cse.instrumentation.runtime.TaintHelper;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoPropagate;
++import edu.washington.cse.instrumentation.runtime.containers.StaccatoList;
++
+ /**
+  * Provides persistent storage of application settings and preferences.
+  *
+  * @author Sindre Mehus
+  */
++@StaccatoCheck(CheckLevel.NONE)
+ public class SettingsService {
+ 
+     // Subsonic home directory.
+@@ -226,9 +228,9 @@
+     private AvatarDao avatarDao;
+     private VersionService versionService;
+ 
+-    private String[] cachedCoverArtFileTypesArray;
+-    private String[] cachedMusicFileTypesArray;
+-    private String[] cachedVideoFileTypesArray;
++    private List<String> cachedCoverArtFileTypesArray;
++    private List<String> cachedMusicFileTypesArray;
++    private List<String> cachedVideoFileTypesArray;
+     private List<MusicFolder> cachedMusicFolders;
+     private final ConcurrentMap<String, List<MusicFolder>> cachedMusicFoldersPerUser = new ConcurrentHashMap<String, List<MusicFolder>>();
+ 
+@@ -250,7 +252,8 @@
+             FileInputStream in = null;
+             try {
+                 in = new FileInputStream(propertyFile);
+-                properties.load(in);
++                TaintHelper.loadProperties(in, properties);
++//                properties.load(in);
+             } catch (Exception x) {
+                 LOG.error("Unable to read from property file.", x);
+             } finally {
+@@ -351,7 +354,7 @@
+     }
+ 
+     private int getInt(String key, int defaultValue) {
+-        return Integer.valueOf(properties.getProperty(key, String.valueOf(defaultValue)));
++    	return Integer.valueOf(TaintHelper.getProp(key, properties, defaultValue + ""));
+     }
+ 
+     private void setInt(String key, int value) {
+@@ -359,7 +362,7 @@
+     }
+ 
+     private long getLong(String key, long defaultValue) {
+-        return Long.valueOf(properties.getProperty(key, String.valueOf(defaultValue)));
++    	return Long.valueOf(TaintHelper.getProp(key, properties, defaultValue + ""));
+     }
+ 
+     private void setLong(String key, long value) {
+@@ -367,23 +370,24 @@
+     }
+ 
+     private boolean getBoolean(String key, boolean defaultValue) {
+-        return Boolean.valueOf(properties.getProperty(key, String.valueOf(defaultValue)));
++    	return Boolean.valueOf(TaintHelper.getProp(key, properties, defaultValue + ""));
+     }
+ 
+     private void setBoolean(String key, boolean value) {
+-        setProperty(key, String.valueOf(value));
++        setProperty(key, String.valueOf(value) + "");
+     }
+ 
+     private String getString(String key, String defaultValue) {
+-        return properties.getProperty(key, defaultValue);
++    	return TaintHelper.getProp(key, properties, defaultValue);
+     }
+ 
+     private void setString(String key, String value) {
+-        setProperty(key, value);
++    	TaintHelper.casProp(key, value, properties);
++//        setProperty(key, value);
+     }
+ 
+     public String getIndexString() {
+-        return properties.getProperty(KEY_INDEX_STRING, DEFAULT_INDEX_STRING);
++        return TaintHelper.getProp(KEY_INDEX_STRING, properties, DEFAULT_INDEX_STRING);
+     }
+ 
+     public void setIndexString(String indexString) {
+@@ -391,11 +395,20 @@
+     }
+ 
+     public String getIgnoredArticles() {
+-        return properties.getProperty(KEY_IGNORED_ARTICLES, DEFAULT_IGNORED_ARTICLES);
++        return TaintHelper.getProp(KEY_IGNORED_ARTICLES, properties, DEFAULT_IGNORED_ARTICLES);
++    }
++    
++    @StaccatoPropagate(PropagationTarget.RETURN)
++    private List<String> getSplitList(String prop, String toSplit) {
++    	List<String> toReturn = new StaccatoList<String>(new ArrayList<String>());
++    	for(String s : prop.split(toSplit)) {
++    		toReturn.add(s);
++    	}
++    	return toReturn;
+     }
+ 
+-    public String[] getIgnoredArticlesAsArray() {
+-        return getIgnoredArticles().split("\\s+");
++    public List<String> getIgnoredArticlesAsList() {
++        return getSplitList(getIgnoredArticles(), "\\s+");
+     }
+ 
+     public void setIgnoredArticles(String ignoredArticles) {
+@@ -403,11 +416,21 @@
+     }
+ 
+     public String getShortcuts() {
+-        return properties.getProperty(KEY_SHORTCUTS, DEFAULT_SHORTCUTS);
++        return TaintHelper.getProp(KEY_SHORTCUTS, properties, DEFAULT_SHORTCUTS);
+     }
+ 
+-    public String[] getShortcutsAsArray() {
+-        return StringUtil.split(getShortcuts());
++    @StaccatoPropagate(PropagationTarget.RETURN)
++    public List<String> wrapArray(String str, String[] arr) {
++    	StaccatoList<String> toReturn = new StaccatoList<String>(new ArrayList<String>(arr.length));
++    	for(String s : arr) {
++    		toReturn.add(s);
++    	}
++    	return toReturn;
++    }
++
++    public List<String> getShortcutsAsList() {
++    	String s = getShortcuts();
++    	return wrapArray(s, StringUtil.split(s));
+     }
+ 
+     public void setShortcuts(String shortcuts) {
+@@ -415,7 +438,7 @@
+     }
+ 
+     public String getPlaylistFolder() {
+-        return properties.getProperty(KEY_PLAYLIST_FOLDER, DEFAULT_PLAYLIST_FOLDER);
++        return TaintHelper.getProp(KEY_PLAYLIST_FOLDER, properties, DEFAULT_PLAYLIST_FOLDER);
+     }
+ 
+     public void setPlaylistFolder(String playlistFolder) {
+@@ -423,7 +446,7 @@
+     }
+ 
+     public String getMusicFileTypes() {
+-        return properties.getProperty(KEY_MUSIC_FILE_TYPES, DEFAULT_MUSIC_FILE_TYPES);
++        return TaintHelper.getProp(KEY_MUSIC_FILE_TYPES, properties, DEFAULT_MUSIC_FILE_TYPES);
+     }
+ 
+     public synchronized void setMusicFileTypes(String fileTypes) {
+@@ -431,15 +454,15 @@
+         cachedMusicFileTypesArray = null;
+     }
+ 
+-    public synchronized String[] getMusicFileTypesAsArray() {
++    public synchronized List<String> getMusicFileTypesAsArray() {
+         if (cachedMusicFileTypesArray == null) {
+-            cachedMusicFileTypesArray = toStringArray(getMusicFileTypes());
++            cachedMusicFileTypesArray = toStringList(getMusicFileTypes());
+         }
+         return cachedMusicFileTypesArray;
+     }
+ 
+     public String getVideoFileTypes() {
+-        return properties.getProperty(KEY_VIDEO_FILE_TYPES, DEFAULT_VIDEO_FILE_TYPES);
++        return TaintHelper.getProp(KEY_VIDEO_FILE_TYPES, properties, DEFAULT_VIDEO_FILE_TYPES);
+     }
+ 
+     public synchronized void setVideoFileTypes(String fileTypes) {
+@@ -447,15 +470,15 @@
+         cachedVideoFileTypesArray = null;
+     }
+ 
+-    public synchronized String[] getVideoFileTypesAsArray() {
++    public synchronized List<String> getVideoFileTypesAsArray() {
+         if (cachedVideoFileTypesArray == null) {
+-            cachedVideoFileTypesArray = toStringArray(getVideoFileTypes());
++            cachedVideoFileTypesArray = toStringList(getVideoFileTypes());
+         }
+         return cachedVideoFileTypesArray;
+     }
+ 
+     public String getCoverArtFileTypes() {
+-        return properties.getProperty(KEY_COVER_ART_FILE_TYPES, DEFAULT_COVER_ART_FILE_TYPES);
++        return TaintHelper.getProp(KEY_COVER_ART_FILE_TYPES, properties, DEFAULT_COVER_ART_FILE_TYPES);
+     }
+ 
+     public synchronized void setCoverArtFileTypes(String fileTypes) {
+@@ -463,9 +486,9 @@
+         cachedCoverArtFileTypesArray = null;
+     }
+ 
+-    public synchronized String[] getCoverArtFileTypesAsArray() {
++    public synchronized List<String> getCoverArtFileTypesAsArray() {
+         if (cachedCoverArtFileTypesArray == null) {
+-            cachedCoverArtFileTypesArray = toStringArray(getCoverArtFileTypes());
++            cachedCoverArtFileTypesArray = toStringList(getCoverArtFileTypes());
+         }
+         return cachedCoverArtFileTypesArray;
+     }
+@@ -479,7 +502,7 @@
+     }
+ 
+     public String getWelcomeTitle() {
+-        return StringUtils.trimToNull(properties.getProperty(KEY_WELCOME_TITLE, DEFAULT_WELCOME_TITLE));
++        return StringUtils.trimToNull(TaintHelper.getProp(KEY_WELCOME_TITLE, properties, DEFAULT_WELCOME_TITLE));
+     }
+ 
+     public void setWelcomeTitle(String title) {
+@@ -487,7 +510,7 @@
+     }
+ 
+     public String getWelcomeSubtitle() {
+-        return StringUtils.trimToNull(properties.getProperty(KEY_WELCOME_SUBTITLE, DEFAULT_WELCOME_SUBTITLE));
++        return StringUtils.trimToNull(TaintHelper.getProp(KEY_WELCOME_SUBTITLE, properties, DEFAULT_WELCOME_SUBTITLE));
+     }
+ 
+     public void setWelcomeSubtitle(String subtitle) {
+@@ -495,7 +518,7 @@
+     }
+ 
+     public String getWelcomeMessage() {
+-        return StringUtils.trimToNull(properties.getProperty(KEY_WELCOME_MESSAGE, DEFAULT_WELCOME_MESSAGE));
++        return StringUtils.trimToNull(TaintHelper.getProp(KEY_WELCOME_MESSAGE, properties, DEFAULT_WELCOME_MESSAGE));
+     }
+ 
+     public void setWelcomeMessage(String message) {
+@@ -503,7 +526,7 @@
+     }
+ 
+     public String getLoginMessage() {
+-        return StringUtils.trimToNull(properties.getProperty(KEY_LOGIN_MESSAGE, DEFAULT_LOGIN_MESSAGE));
++        return StringUtils.trimToNull(TaintHelper.getProp(KEY_LOGIN_MESSAGE, properties, DEFAULT_LOGIN_MESSAGE));
+     }
+ 
+     public void setLoginMessage(String message) {
+@@ -596,7 +619,7 @@
+      * Returns the Podcast download folder.
+      */
+     public String getPodcastFolder() {
+-        return properties.getProperty(KEY_PODCAST_FOLDER, DEFAULT_PODCAST_FOLDER);
++        return TaintHelper.getProp(KEY_PODCAST_FOLDER, properties, DEFAULT_PODCAST_FOLDER);
+     }
+ 
+     /**
+@@ -610,7 +633,7 @@
+      * @return The download bitrate limit in Kbit/s. Zero if unlimited.
+      */
+     public long getDownloadBitrateLimit() {
+-        return Long.parseLong(properties.getProperty(KEY_DOWNLOAD_BITRATE_LIMIT, "" + DEFAULT_DOWNLOAD_BITRATE_LIMIT));
++    	return getLong(KEY_DOWNLOAD_BITRATE_LIMIT, DEFAULT_DOWNLOAD_BITRATE_LIMIT);
+     }
+ 
+     /**
+@@ -650,7 +673,7 @@
+ 
+     public String getLicenseEmail() {
+     	return "a@a.com";
+-        //return properties.getProperty(KEY_LICENSE_EMAIL, DEFAULT_LICENSE_EMAIL);
++        //return TaintHelper.getProp(KEY_LICENSE_EMAIL, properties, DEFAULT_LICENSE_EMAIL);
+     }
+ 
+     public void setLicenseEmail(String email) {
+@@ -658,7 +681,7 @@
+     }
+ 
+     public String getLicenseCode() {
+-        return properties.getProperty(KEY_LICENSE_CODE, DEFAULT_LICENSE_CODE);
++        return TaintHelper.getProp(KEY_LICENSE_CODE, properties, DEFAULT_LICENSE_CODE);
+     }
+ 
+     public void setLicenseCode(String code) {
+@@ -666,7 +689,7 @@
+     }
+ 
+     public Date getLicenseDate() {
+-        String value = properties.getProperty(KEY_LICENSE_DATE, DEFAULT_LICENSE_DATE);
++        String value = TaintHelper.getProp(KEY_LICENSE_DATE, properties, DEFAULT_LICENSE_DATE);
+         return value == null ? null : new Date(Long.parseLong(value));
+     }
+ 
+@@ -697,7 +720,7 @@
+     }
+ 
+     public String getDownsamplingCommand() {
+-        return properties.getProperty(KEY_DOWNSAMPLING_COMMAND, DEFAULT_DOWNSAMPLING_COMMAND);
++        return TaintHelper.getProp(KEY_DOWNSAMPLING_COMMAND, properties, DEFAULT_DOWNSAMPLING_COMMAND);
+     }
+ 
+     public void setDownsamplingCommand(String command) {
+@@ -705,7 +728,7 @@
+     }
+ 
+     public String getHlsCommand() {
+-        return properties.getProperty(KEY_HLS_COMMAND, DEFAULT_HLS_COMMAND);
++        return TaintHelper.getProp(KEY_HLS_COMMAND, properties, DEFAULT_HLS_COMMAND);
+     }
+ 
+     public void setHlsCommand(String command) {
+@@ -713,10 +736,10 @@
+     }
+ 
+     public String getJukeboxCommand() {
+-        return properties.getProperty(KEY_JUKEBOX_COMMAND, DEFAULT_JUKEBOX_COMMAND);
++        return TaintHelper.getProp(KEY_JUKEBOX_COMMAND, properties, DEFAULT_JUKEBOX_COMMAND);
+     }
+     public String getVideoImageCommand() {
+-        return properties.getProperty(KEY_VIDEO_IMAGE_COMMAND, DEFAULT_VIDEO_IMAGE_COMMAND);
++        return TaintHelper.getProp(KEY_VIDEO_IMAGE_COMMAND, properties, DEFAULT_VIDEO_IMAGE_COMMAND);
+     }
+ 
+     public boolean isRewriteUrlEnabled() {
+@@ -736,31 +759,32 @@
+     }
+ 
+     public String getLdapUrl() {
+-        return properties.getProperty(KEY_LDAP_URL, DEFAULT_LDAP_URL);
++        String toRet = TaintHelper.getProp(KEY_LDAP_URL, properties, DEFAULT_LDAP_URL);
++        return toRet;
+     }
+ 
+     public void setLdapUrl(String ldapUrl) {
+-        properties.setProperty(KEY_LDAP_URL, ldapUrl);
++    	TaintHelper.casProp(KEY_LDAP_URL, ldapUrl, properties);
+     }
+ 
+     public String getLdapSearchFilter() {
+-        return properties.getProperty(KEY_LDAP_SEARCH_FILTER, DEFAULT_LDAP_SEARCH_FILTER);
++        return TaintHelper.getProp(KEY_LDAP_SEARCH_FILTER, properties, DEFAULT_LDAP_SEARCH_FILTER);
+     }
+ 
+     public void setLdapSearchFilter(String ldapSearchFilter) {
+-        properties.setProperty(KEY_LDAP_SEARCH_FILTER, ldapSearchFilter);
++        TaintHelper.casProp(KEY_LDAP_SEARCH_FILTER, ldapSearchFilter, properties);
+     }
+ 
+     public String getLdapManagerDn() {
+-        return properties.getProperty(KEY_LDAP_MANAGER_DN, DEFAULT_LDAP_MANAGER_DN);
++        return TaintHelper.getProp(KEY_LDAP_MANAGER_DN, properties, DEFAULT_LDAP_MANAGER_DN);
+     }
+ 
+     public void setLdapManagerDn(String ldapManagerDn) {
+-        properties.setProperty(KEY_LDAP_MANAGER_DN, ldapManagerDn);
++        TaintHelper.casProp(KEY_LDAP_MANAGER_DN, ldapManagerDn, properties);
+     }
+ 
+     public String getLdapManagerPassword() {
+-        String s = properties.getProperty(KEY_LDAP_MANAGER_PASSWORD, DEFAULT_LDAP_MANAGER_PASSWORD);
++        String s = TaintHelper.getProp(KEY_LDAP_MANAGER_PASSWORD, properties, DEFAULT_LDAP_MANAGER_PASSWORD);
+         try {
+             return StringUtil.utf8HexDecode(s);
+         } catch (Exception x) {
+@@ -775,7 +799,7 @@
+         } catch (Exception x) {
+             LOG.warn("Failed to encode LDAP manager password.", x);
+         }
+-        properties.setProperty(KEY_LDAP_MANAGER_PASSWORD, ldapManagerPassword);
++        TaintHelper.casProp(KEY_LDAP_MANAGER_PASSWORD, ldapManagerPassword, properties);
+     }
+ 
+     public boolean isLdapAutoShadowing() {
+@@ -827,15 +851,15 @@
+     }
+ 
+     public String getUrlRedirectFrom() {
+-        return properties.getProperty(KEY_URL_REDIRECT_FROM, DEFAULT_URL_REDIRECT_FROM);
++        return TaintHelper.getProp(KEY_URL_REDIRECT_FROM, properties, DEFAULT_URL_REDIRECT_FROM);
+     }
+ 
+     public void setUrlRedirectFrom(String urlRedirectFrom) {
+-        properties.setProperty(KEY_URL_REDIRECT_FROM, urlRedirectFrom);
++        TaintHelper.casProp(KEY_URL_REDIRECT_FROM, urlRedirectFrom, properties);
+     }
+ 
+     public Date getTrialExpires() {
+-        String value = properties.getProperty(KEY_TRIAL_EXPIRES, DEFAULT_TRIAL_EXPIRES);
++        String value = TaintHelper.getProp(KEY_TRIAL_EXPIRES, properties, DEFAULT_TRIAL_EXPIRES);
+         return value == null ? null : new Date(Long.parseLong(value));
+     }
+ 
+@@ -845,19 +869,19 @@
+     }
+ 
+     public String getUrlRedirectContextPath() {
+-        return properties.getProperty(KEY_URL_REDIRECT_CONTEXT_PATH, DEFAULT_URL_REDIRECT_CONTEXT_PATH);
++        return TaintHelper.getProp(KEY_URL_REDIRECT_CONTEXT_PATH, properties, DEFAULT_URL_REDIRECT_CONTEXT_PATH);
+     }
+ 
+     public void setUrlRedirectContextPath(String contextPath) {
+-        properties.setProperty(KEY_URL_REDIRECT_CONTEXT_PATH, contextPath);
++        TaintHelper.casProp(KEY_URL_REDIRECT_CONTEXT_PATH, contextPath, properties);
+     }
+ 
+     public String getServerId() {
+-        return properties.getProperty(KEY_SERVER_ID, DEFAULT_SERVER_ID);
++        return TaintHelper.getProp(KEY_SERVER_ID, properties, DEFAULT_SERVER_ID);
+     }
+ 
+     public void setServerId(String serverId) {
+-        properties.setProperty(KEY_SERVER_ID, serverId);
++        TaintHelper.casProp(KEY_SERVER_ID, serverId, properties);
+     }
+ 
+     public long getSettingsChanged() {
+@@ -907,9 +931,9 @@
+      * @return The locale.
+      */
+     public Locale getLocale() {
+-        String language = properties.getProperty(KEY_LOCALE_LANGUAGE, DEFAULT_LOCALE_LANGUAGE);
+-        String country = properties.getProperty(KEY_LOCALE_COUNTRY, DEFAULT_LOCALE_COUNTRY);
+-        String variant = properties.getProperty(KEY_LOCALE_VARIANT, DEFAULT_LOCALE_VARIANT);
++        String language = TaintHelper.getProp(KEY_LOCALE_LANGUAGE, properties, DEFAULT_LOCALE_LANGUAGE);
++        String country = TaintHelper.getProp(KEY_LOCALE_COUNTRY, properties, DEFAULT_LOCALE_COUNTRY);
++        String variant = TaintHelper.getProp(KEY_LOCALE_VARIANT, properties, DEFAULT_LOCALE_VARIANT);
+ 
+         return new Locale(language, country, variant);
+     }
+@@ -931,7 +955,7 @@
+      * @return The theme ID.
+      */
+     public String getThemeId() {
+-        return properties.getProperty(KEY_THEME_ID, DEFAULT_THEME_ID);
++        return TaintHelper.getProp(KEY_THEME_ID, properties, DEFAULT_THEME_ID);
+     }
+ 
+     /**
+@@ -1362,22 +1386,30 @@
+         return localIpAddress;
+     }
+ 
++    public void startLdapUpdate() {
++    	TaintHelper.startUpdate(KEY_LDAP_MANAGER_DN, KEY_LDAP_MANAGER_PASSWORD, KEY_LDAP_SEARCH_FILTER, KEY_LDAP_URL);
++    }
++    
++    public void endLdapUpdate() {
++    	TaintHelper.endUpdate(KEY_LDAP_MANAGER_DN, KEY_LDAP_MANAGER_PASSWORD, KEY_LDAP_SEARCH_FILTER, KEY_LDAP_URL);
++    }
++
+     private void setProperty(String key, String value) {
+         if (value == null) {
+-            properties.remove(key);
++        	TaintHelper.deleteProp(key, properties);
+         } else {
+-            properties.setProperty(key, value);
++        	TaintHelper.casProp(key, value, properties);
+         }
+     }
+ 
+-    private String[] toStringArray(String s) {
+-        List<String> result = new ArrayList<String>();
++    @StaccatoPropagate(PropagationTarget.RETURN)
++    private List<String> toStringList(String s) {
++        List<String> result = new StaccatoList<String>(new ArrayList<String>());
+         StringTokenizer tokenizer = new StringTokenizer(s, " ");
+         while (tokenizer.hasMoreTokens()) {
+             result.add(tokenizer.nextToken());
+         }
+-
+-        return result.toArray(new String[result.size()]);
++        return result;
+     }
+ 
+     private void validateLicense() {
+diff -r -u -x .git -N -w -b subsonic-orig/subsonic-main/src/main/java/net/sourceforge/subsonic/theme/SubsonicThemeSource.java subsonic-code/subsonic-main/src/main/java/net/sourceforge/subsonic/theme/SubsonicThemeSource.java
+--- subsonic-orig/subsonic-main/src/main/java/net/sourceforge/subsonic/theme/SubsonicThemeSource.java	2015-05-11 11:08:00.000000000 -0700
++++ subsonic-code/subsonic-main/src/main/java/net/sourceforge/subsonic/theme/SubsonicThemeSource.java	2015-12-07 03:48:56.000000000 -0800
+@@ -18,13 +18,13 @@
+  */
+ package net.sourceforge.subsonic.theme;
+ 
+-import org.springframework.ui.context.support.ResourceBundleThemeSource;
+-import org.springframework.context.MessageSource;
+-import org.springframework.context.support.ResourceBundleMessageSource;
+-
+ import net.sourceforge.subsonic.domain.Theme;
+ import net.sourceforge.subsonic.service.SettingsService;
+ 
++import org.springframework.context.MessageSource;
++import org.springframework.context.support.ResourceBundleMessageSource;
++import org.springframework.ui.context.support.ResourceBundleThemeSource;
++
+ /**
+  * Theme source implementation which uses two resource bundles: the
+  * theme specific (e.g., barents.properties), and the default (default.properties).
+diff -r -u -x .git -N -w -b subsonic-orig/subsonic-main/src/main/java/net/sourceforge/subsonic/util/StringUtil.java subsonic-code/subsonic-main/src/main/java/net/sourceforge/subsonic/util/StringUtil.java
+--- subsonic-orig/subsonic-main/src/main/java/net/sourceforge/subsonic/util/StringUtil.java	2015-05-11 11:10:19.000000000 -0700
++++ subsonic-code/subsonic-main/src/main/java/net/sourceforge/subsonic/util/StringUtil.java	2015-12-07 03:48:56.000000000 -0800
+@@ -44,6 +44,9 @@
+ import org.apache.commons.io.IOUtils;
+ import org.apache.commons.lang.StringUtils;
+ 
++import edu.washington.cse.instrumentation.runtime.PropagationTarget;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoPropagate;
++
+ /**
+  * Miscellaneous string utility methods.
+  *
+@@ -322,6 +325,7 @@
+      * @return The transformed URL.
+      * @throws MalformedURLException If the original URL is invalid.
+      */
++    @StaccatoPropagate(PropagationTarget.RETURN)
+     public static String toHttpUrl(String url, int port) throws MalformedURLException {
+         URL u = new URL(url);
+         if ("https".equals(u.getProtocol())) {
+@@ -367,6 +371,7 @@
+     /**
+      * URL-encodes the input value using UTF-8.
+      */
++    @StaccatoPropagate(PropagationTarget.RETURN)
+     public static String urlEncode(String s) {
+         try {
+             return URLEncoder.encode(s, StringUtil.ENCODING_UTF8);
+@@ -401,6 +406,7 @@
+      * @return The decoded string.
+      * @throws Exception If an error occurs.
+      */
++    @StaccatoPropagate(PropagationTarget.RETURN)
+     public static String utf8HexDecode(String s) throws Exception {
+         if (s == null) {
+             return null;
+@@ -465,6 +471,7 @@
+      * @param urlWithProtocolHostAndPort Use protocol, host and port from this URL.
+      * @return The rewritten URL, or an unchanged URL if either argument is not a proper URL.
+      */
++    @StaccatoPropagate(PropagationTarget.RETURN)
+     public static String rewriteUrl(String urlToRewrite, String urlWithProtocolHostAndPort) {
+         if (urlToRewrite == null) {
+             return null;
+@@ -484,6 +491,7 @@
+     /**
+      * Rewrites an URL to make it accessible from remote clients.
+      */
++    @StaccatoPropagate(PropagationTarget.RETURN)
+     public static String rewriteRemoteUrl(String localUrl, boolean urlRedirectionEnabled, String urlRedirectFrom,
+             String urlRedirectContextPath, String localIp, int localPort) throws MalformedURLException {
+ 
+@@ -519,6 +527,7 @@
+         return filename;
+     }
+ 
++    @StaccatoPropagate(PropagationTarget.RETURN)
+     public static String removeMarkup(String s) {
+         if (s == null) {
+             return null;
+diff -r -u -x .git -N -w -b subsonic-orig/subsonic-main/src/main/webapp/WEB-INF/applicationContext-service.xml subsonic-code/subsonic-main/src/main/webapp/WEB-INF/applicationContext-service.xml
+--- subsonic-orig/subsonic-main/src/main/webapp/WEB-INF/applicationContext-service.xml	2015-05-11 11:08:01.000000000 -0700
++++ subsonic-code/subsonic-main/src/main/webapp/WEB-INF/applicationContext-service.xml	2015-11-21 19:58:24.000000000 -0800
+@@ -206,13 +206,13 @@
+         <property name="artistDao" ref="artistDao"/>
+     </bean>
+ 
+-    <bean id="sonosService" class="net.sourceforge.subsonic.service.SonosService" init-method="init">
++<!--    <bean id="sonosService" class="net.sourceforge.subsonic.service.SonosService" init-method="init">
+         <property name="sonosHelper" ref="sonosHelper"/>
+         <property name="mediaFileService" ref="mediaFileService"/>
+         <property name="securityService" ref="securityService"/>
+         <property name="settingsService" ref="settingsService"/>
+         <property name="upnpService" ref="upnpService"/>
+-    </bean>
++    </bean>-->
+ 
+     <bean id="metaDataParserFactory" class="net.sourceforge.subsonic.service.metadata.MetaDataParserFactory">
+         <property name="parsers">
+diff -r -u -x .git -N -w -b subsonic-orig/subsonic-main/src/main/webapp/WEB-INF/subsonic-servlet.xml subsonic-code/subsonic-main/src/main/webapp/WEB-INF/subsonic-servlet.xml
+--- subsonic-orig/subsonic-main/src/main/webapp/WEB-INF/subsonic-servlet.xml	2015-05-11 11:08:01.000000000 -0700
++++ subsonic-code/subsonic-main/src/main/webapp/WEB-INF/subsonic-servlet.xml	2015-11-04 14:38:54.000000000 -0800
+@@ -170,11 +170,11 @@
+         <property name="upnpService" ref="upnpService"/>
+         <property name="settingsService" ref="settingsService"/>
+     </bean>
+-    <bean id="sonosSettingsController" class="net.sourceforge.subsonic.controller.SonosSettingsController">
++<!--    <bean id="sonosSettingsController" class="net.sourceforge.subsonic.controller.SonosSettingsController">
+         <property name="viewName" value="sonosSettings"/>
+         <property name="sonosService" ref="sonosService"/>
+         <property name="settingsService" ref="settingsService"/>
+-    </bean>
++    </bean>-->
+     <bean id="shareSettingsController" class="net.sourceforge.subsonic.controller.ShareSettingsController">
+         <property name="viewName" value="shareSettings"/>
+         <property name="shareService" ref="shareService"/>
+@@ -441,7 +441,7 @@
+                 <prop key="/settings.view">settingsController</prop>
+                 <prop key="/playerSettings.view">playerSettingsController</prop>
+                 <prop key="/dlnaSettings.view">dlnaSettingsController</prop>
+-                <prop key="/sonosSettings.view">sonosSettingsController</prop>
++<!--                <prop key="/sonosSettings.view">sonosSettingsController</prop>-->
+                 <prop key="/shareSettings.view">shareSettingsController</prop>
+                 <prop key="/musicFolderSettings.view">musicFolderSettingsController</prop>
+                 <prop key="/networkSettings.view">networkSettingsController</prop>
+diff -r -u -x .git -N -w -b subsonic-orig/subsonic-main/src/main/webapp/WEB-INF/web.xml subsonic-code/subsonic-main/src/main/webapp/WEB-INF/web.xml
+--- subsonic-orig/subsonic-main/src/main/webapp/WEB-INF/web.xml	2015-05-11 20:25:49.000000000 -0700
++++ subsonic-code/subsonic-main/src/main/webapp/WEB-INF/web.xml	2015-11-21 19:57:44.000000000 -0800
+@@ -8,11 +8,16 @@
+     <!-- Location of application context.  Used by ContextLoaderListener. -->
+     <context-param>
+         <param-name>contextConfigLocation</param-name>
+-        <param-value>
++<!--        <param-value>
+             /WEB-INF/applicationContext-service.xml
+             /WEB-INF/applicationContext-security.xml
+             /WEB-INF/applicationContext-cache.xml
+             /WEB-INF/applicationContext-sonos.xml
++        </param-value>-->
++        <param-value>
++            /WEB-INF/applicationContext-service.xml
++            /WEB-INF/applicationContext-security.xml
++            /WEB-INF/applicationContext-cache.xml
+         </param-value>
+     </context-param>
+ 

@@ -1,0 +1,4 @@
+include "openfire"
+include "jforum"
+include "subsonic"
+include "solr"

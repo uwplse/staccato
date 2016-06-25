@@ -1,0 +1,13 @@
+diff --git a/src/net/jforum/util/I18n.java b/src/net/jforum/util/I18n.java
+index 22bc409..e0b93c5 100644
+--- a/src/net/jforum/util/I18n.java
++++ b/src/net/jforum/util/I18n.java
+@@ -81,7 +81,7 @@ public class I18n
+ 
+ 	private static Properties localeNames = new Properties();
+ 
+-	private static String defaultName;
++	private static volatile String defaultName;
+ 
+ 	private static String baseDir;
+ 

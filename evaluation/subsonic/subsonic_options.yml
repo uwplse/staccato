@@ -1,0 +1,15 @@
+all_props: [CoverArtLimit, IndexString, GettingStartedEnabled, WelcomeTitle, VideoFileTypes,
+  IndexCreationInterval, SortAlbumsByYear, PodcastEpisodeRetentionCount, WelcomeSubtitle,
+  IgnoredArticles, HttpsPort, LocaleVariant, LdapEnabled, LoginMessage, LocaleCountry,
+  PodcastUpdateInterval, Shortcuts, DlnaEnabled, LdapManagerDn, UrlRedirectFrom, LdapAutoShadowing,
+  MusicFileTypes, UrlRedirectionEnabled, WelcomeMessage2, RewriteUrl, UploadBitrateLimit,
+  HlsCommand3, CoverArtFileTypes, PodcastFolder, OrganizeByFolderStructure, PlaylistFolder,
+  Port, IndexCreationHour, DownloadBitrateLimit, LdapSearchFilter, LocaleLanguage,
+  Theme, VideoImageCommand, StreamPort, LdapUrl, ServerId, DownsamplingCommand4, PodcastEpisodeDownloadCount,
+  LdapManagerPassword, PortForwardingEnabled, UrlRedirectContextPath, JukeboxCommand2,
+  FastCacheEnabled]
+immutable: []
+internal: []
+updated: []
+other: []
+

@@ -1,0 +1,132 @@
+diff --git a/src/main/java/net/sourceforge/subsonic/service/MusicIndexService.java b/src/main/java/net/sourceforge/subsonic/service/MusicIndexService.java
+index b3efded..ed63a18 100644
+--- a/src/main/java/net/sourceforge/subsonic/service/MusicIndexService.java
++++ b/src/main/java/net/sourceforge/subsonic/service/MusicIndexService.java
+@@ -88,7 +88,7 @@ public class MusicIndexService {
+ 
+     public List<MediaFile> getShortcuts(List<MusicFolder> musicFoldersToUse) {
+         List<MediaFile> result = new ArrayList<MediaFile>();
+-        for (String shortcut : settingsService.getShortcutsAsArray()) {
++        for (String shortcut : settingsService.getShortcutsAsList()) {
+             for (MusicFolder musicFolder : musicFoldersToUse) {
+                 File file = new File(musicFolder.getPath(), shortcut);
+                 if (FileUtil.exists(file)) {
+@@ -171,10 +171,11 @@ public class MusicIndexService {
+     }
+ 
+     private List<MusicIndex.SortableArtistWithMediaFiles> createSortableArtists(List<MusicFolder> folders, boolean refresh) throws IOException {
+-        String[] ignoredArticles = settingsService.getIgnoredArticlesAsArray();
+-        String[] shortcuts = settingsService.getShortcutsAsArray();
++        List<String> ignoredArticles = settingsService.getIgnoredArticlesAsList();
++        List<String> shortcuts = settingsService.getShortcutsAsList();
+         SortedMap<String, MusicIndex.SortableArtistWithMediaFiles> artistMap = new TreeMap<String, MusicIndex.SortableArtistWithMediaFiles>();
+-        Set<String> shortcutSet = new HashSet<String>(Arrays.asList(shortcuts));
++        Set<String> shortcutSet = new StaccatoSet<String>(new HashSet<String>());
++        shortcutSet.addAll(shortcuts);
+         Collator collator = createCollator();
+ 
+         for (MusicFolder folder : folders) {
+@@ -201,7 +202,7 @@ public class MusicIndexService {
+ 
+     private List<MusicIndex.SortableArtistWithArtist> createSortableArtists(List<Artist> artists) {
+         List<MusicIndex.SortableArtistWithArtist> result = new ArrayList<MusicIndex.SortableArtistWithArtist>();
+-        String[] ignoredArticles = settingsService.getIgnoredArticlesAsArray();
++        List<String> ignoredArticles = settingsService.getIgnoredArticlesAsList();
+         Collator collator = createCollator();
+         for (Artist artist : artists) {
+             String sortableName = createSortableName(artist.getName(), ignoredArticles);
+@@ -218,7 +219,7 @@ public class MusicIndexService {
+         return Collator.getInstance(settingsService.getLocale());
+     }
+ 
+-    private String createSortableName(String name, String[] ignoredArticles) {
++    private String createSortableName(String name, List<String> ignoredArticles) {
+         String uppercaseName = name.toUpperCase();
+         for (String article : ignoredArticles) {
+             if (uppercaseName.startsWith(article.toUpperCase() + " ")) {
+diff --git a/src/main/java/net/sourceforge/subsonic/service/SettingsService.java b/src/main/java/net/sourceforge/subsonic/service/SettingsService.java
+index 2798952..9d383d8 100644
+--- a/src/main/java/net/sourceforge/subsonic/service/SettingsService.java
++++ b/src/main/java/net/sourceforge/subsonic/service/SettingsService.java
+@@ -227,9 +227,9 @@ public class SettingsService {
+     private AvatarDao avatarDao;
+     private VersionService versionService;
+ 
+-    private String[] cachedCoverArtFileTypesArray;
+-    private String[] cachedMusicFileTypesArray;
+-    private String[] cachedVideoFileTypesArray;
++    private List<String> cachedCoverArtFileTypesArray;
++    private List<String> cachedMusicFileTypesArray;
++    private List<String> cachedVideoFileTypesArray;
+     private List<MusicFolder> cachedMusicFolders;
+     private final ConcurrentMap<String, List<MusicFolder>> cachedMusicFoldersPerUser = new ConcurrentHashMap<String, List<MusicFolder>>();
+ 
+@@ -397,8 +397,16 @@ public class SettingsService {
+         return TaintHelper.getProp(KEY_IGNORED_ARTICLES, properties, DEFAULT_IGNORED_ARTICLES);
+     }
+     
+-    public String[] getIgnoredArticlesAsArray() {
+-        return getIgnoredArticles().split("\\s+");
++    private List<String> getSplitList(String prop, String toSplit) {
++    	List<String> toReturn = new StaccatoList<String>(new ArrayList<String>());
++    	for(String s : prop.split(toSplit)) {
++    		toReturn.add(s);
++    	}
++    	return toReturn;
++    }
++
++    public List<String> getIgnoredArticlesAsList() {
++        return getSplitList(getIgnoredArticles(), "\\s+");
+     }
+ 
+     public void setIgnoredArticles(String ignoredArticles) {
+@@ -409,8 +417,17 @@ public class SettingsService {
+         return TaintHelper.getProp(KEY_SHORTCUTS, properties, DEFAULT_SHORTCUTS);
+     }
+     
+-    public String[] getShortcutsAsArray() {
+-        return StringUtil.split(getShortcuts());
++    public List<String> wrapArray(String str, String[] arr) {
++    	StaccatoList<String> toReturn = new StaccatoList<String>(new ArrayList<String>(arr.length));
++    	for(String s : arr) {
++    		toReturn.add(s);
++    	}
++    	return toReturn;
++    }
++
++    public List<String> getShortcutsAsList() {
++    	String s = getShortcuts();
++    	return wrapArray(s, StringUtil.split(s));
+     }
+ 
+     public void setShortcuts(String shortcuts) {
+@@ -466,9 +483,9 @@ public class SettingsService {
+         cachedCoverArtFileTypesArray = null;
+     }
+ 
+-    public synchronized String[] getCoverArtFileTypesAsArray() {
++    public synchronized List<String> getCoverArtFileTypesAsArray() {
+         if (cachedCoverArtFileTypesArray == null) {
+-            cachedCoverArtFileTypesArray = toStringArray(getCoverArtFileTypes());
++            cachedCoverArtFileTypesArray = toStringList(getCoverArtFileTypes());
+         }
+         return cachedCoverArtFileTypesArray;
+     }
+@@ -1382,14 +1399,13 @@ public class SettingsService {
+         }
+     }
+     
+-    private String[] toStringArray(String s) {
+-        List<String> result = new ArrayList<String>();
++    private List<String> toStringList(String s) {
++        List<String> result = new StaccatoList<String>(new ArrayList<String>());
+         StringTokenizer tokenizer = new StringTokenizer(s, " ");
+         while (tokenizer.hasMoreTokens()) {
+             result.add(tokenizer.nextToken());
+         }
+-
+-        return result.toArray(new String[result.size()]);
++        return result;
+     }
+ 
+     private void validateLicense() {

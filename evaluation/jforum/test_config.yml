@@ -1,0 +1,7 @@
+project: jforum
+project_dir: "$thisdir"
+test: "$thisdir/forum_test.jmx"
+havoc: "$thisdir/forum_havoc.jmx"
+test_impl: "JMeterTest"
+havoc_iter: 75
+test_iter: 100

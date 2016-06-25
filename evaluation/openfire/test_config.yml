@@ -1,0 +1,7 @@
+project: openfire
+project_dir: "$thisdir"
+test: "$thisdir/tsung-chat-update.xml"
+havoc: "$thisdir/openfire_havoc.jmx"
+test_impl: "TsungTest"
+havoc_iter: 350
+#test_iter: 150

@@ -1,0 +1,135 @@
+diff --git a/src/net/jforum/repository/SmiliesRepository.java b/src/net/jforum/repository/SmiliesRepository.java
+index d628dbf..a34c8f7 100644
+--- a/src/net/jforum/repository/SmiliesRepository.java
++++ b/src/net/jforum/repository/SmiliesRepository.java
+@@ -89,15 +89,18 @@ public class SmiliesRepository implements Cacheable
+ 	{
+ 		List list = (List)cache.get(FQN, ENTRIES);
+ 		if (!contexted) {
++			List outputList = new StaccatoList(new ArrayList(list.size()));
+ 			String forumLink = SystemGlobals.getValue(ConfigKeys.FORUM_LINK);
+ 			
+ 			for (Iterator iter = list.iterator(); iter.hasNext(); ) {
+ 				Smilie s = (Smilie)iter.next();
+ 				s.setUrl(s.getUrl().replaceAll("#CONTEXT#", forumLink).replaceAll("\\\\", ""));
++				outputList.add(s);
+ 			}
+ 			
+-			cache.add(FQN, ENTRIES, list);
++			cache.add(FQN, ENTRIES, outputList);
+ 			contexted = true;
++			list = outputList;
+ 		}
+ 		
+ 		return list;
+diff --git a/src/net/jforum/util/ConfTrackProperties.java b/src/net/jforum/util/ConfTrackProperties.java
+new file mode 100644
+index 0000000..031b7be
+--- /dev/null
++++ b/src/net/jforum/util/ConfTrackProperties.java
+@@ -0,0 +1,27 @@
++package net.jforum.util;
++
++import java.util.Map;
++import java.util.Properties;
++
++import edu.washington.cse.instrumentation.runtime.PropagationTarget;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoPropagate;
++
++public class ConfTrackProperties extends Properties {
++	@Override
++	public synchronized Object put(Object key, Object value) {
++		// TODO Auto-generated method stub
++		return super.put(key, value);
++	}
++	
++	@Override
++	public synchronized void putAll(Map<? extends Object, ? extends Object> t) {
++		// TODO Auto-generated method stub
++		super.putAll(t);
++	}
++	
++	@Override
++	public synchronized Object setProperty(String key, String value) {
++		// TODO Auto-generated method stub
++		return super.setProperty(key, value);
++	}
++}
+diff --git a/src/net/jforum/util/SafeHtml.java b/src/net/jforum/util/SafeHtml.java
+index 827840e..d589c87 100644
+--- a/src/net/jforum/util/SafeHtml.java
++++ b/src/net/jforum/util/SafeHtml.java
+@@ -85,17 +85,18 @@ public class SafeHtml
+ 		welcomeAttributes = new HashSet();
+ 		allowedProtocols = new HashSet();
+ 		
+-		splitAndTrim(ConfigKeys.HTML_TAGS_WELCOME, welcomeTags);
+-		splitAndTrim(ConfigKeys.HTML_ATTRIBUTES_WELCOME, welcomeAttributes);
+-		splitAndTrim(ConfigKeys.HTML_LINKS_ALLOW_PROTOCOLS, allowedProtocols);
++		welcomeTags = splitAndTrim(SystemGlobals.getValue(ConfigKeys.HTML_TAGS_WELCOME));
++		welcomeAttributes = splitAndTrim(SystemGlobals.getValue(ConfigKeys.HTML_ATTRIBUTES_WELCOME));
++		allowedProtocols = splitAndTrim(SystemGlobals.getValue(ConfigKeys.HTML_LINKS_ALLOW_PROTOCOLS));
+ 	}
+ 	
+-	private static void splitAndTrim(String s, Set data)
++	private static Set splitAndTrim(String s)
+ 	{
+-		String s1 = SystemGlobals.getValue(s);
++		Set data = new StaccatoSet(new HashSet());
++		String s1 = s;
+ 		
+ 		if (s1 == null) {
+-			return;
++			return data;
+ 		}
+ 		
+ 		String[] tags = s1.toUpperCase().split(",");
+@@ -103,6 +104,7 @@ public class SafeHtml
+ 		for (int i = 0; i < tags.length; i++) {
+ 			data.add(tags[i].trim());
+ 		}
++		return data;
+ 	}
+ 	
+ 	/**
+@@ -138,6 +140,10 @@ public class SafeHtml
+ 		return sb.toString();
+ 	}
+ 	
++	public Set getWelcomeTags() {
++		return welcomeTags;
++	}
++	
+ 	/**
+ 	 * Given an input, makes it safe for HTML displaying. 
+ 	 * Removes any not allowed HTML tag or attribute, as well
+@@ -206,7 +212,7 @@ public class SafeHtml
+ 	{
+ 		Tag tag = (Tag)node;
+ 
+-		if (!welcomeTags.contains(tag.getTagName())) {
++		if (!getWelcomeTags().contains(tag.getTagName())) {
+ 			return false;
+ 		}
+ 		
+diff --git a/src/net/jforum/util/mail/Spammer.java b/src/net/jforum/util/mail/Spammer.java
+index 9487ec6..5f6353e 100644
+--- a/src/net/jforum/util/mail/Spammer.java
++++ b/src/net/jforum/util/mail/Spammer.java
+@@ -88,7 +88,7 @@ public class Spammer
+ 	private String username;
+ 	private String password;
+ 	
+-	private Properties mailProps = new Properties();
++	private Properties mailProps = new ConfTrackProperties();
+ 	private MimeMessage message;
+ 	private List users = new ArrayList();
+ 	private String messageId;
+@@ -125,7 +125,6 @@ public class Spammer
+ 		messageFormat = SystemGlobals.getValue(ConfigKeys.MAIL_MESSSAGE_FORMAT).equals("html") 
+ 			? MESSAGE_HTML
+ 			: MESSAGE_TEXT;
+-
+ 		this.session = Session.getInstance(mailProps);
+ 	}
+ 	

@@ -1,0 +1,56 @@
+commit ff0723651a6613ec2f18d17f95e34b29caad886e
+Author: Mark Robert Miller <markrmiller@apache.org>
+Date:   Tue Jul 3 17:36:38 2012 +0000
+
+    SOLR-3587: After reloading a SolrCore, the original Analyzer is still used rather than a new one
+    
+    git-svn-id: https://svn.apache.org/repos/asf/lucene/dev/trunk@1356842 13f79535-47bb-0310-9956-ffa450edef68
+
+diff --git a/solr/core/src/java/org/apache/solr/update/DirectUpdateHandler2.java b/solr/core/src/java/org/apache/solr/update/DirectUpdateHandler2.java
+index 66984fb..db099ef 100644
+--- a/solr/core/src/java/org/apache/solr/update/DirectUpdateHandler2.java
++++ b/solr/core/src/java/org/apache/solr/update/DirectUpdateHandler2.java
+@@ -198,7 +198,7 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
+ 
+           Document luceneDocument = cmd.getLuceneDocument();
+           // SolrCore.verbose("updateDocument",updateTerm,luceneDocument,writer);
+-          writer.updateDocument(updateTerm, luceneDocument);
++          writer.updateDocument(updateTerm, luceneDocument, schema.getAnalyzer());
+           // SolrCore.verbose("updateDocument",updateTerm,"DONE");
+ 
+ 
+@@ -219,7 +219,7 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
+ 
+       } else {
+         // allow duplicates
+-        writer.addDocument(cmd.getLuceneDocument());
++        writer.addDocument(cmd.getLuceneDocument(), schema.getAnalyzer());
+         if (ulog != null) ulog.add(cmd);
+       }
+ 
+@@ -371,7 +371,7 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
+     synchronized (this) {
+       IndexWriter writer = solrCoreState.getIndexWriter(core);
+ 
+-      writer.updateDocument(idTerm, luceneDocument);
++      writer.updateDocument(idTerm, luceneDocument, core.getSchema().getAnalyzer());
+ 
+       for (Query q : dbqList) {
+         writer.deleteDocuments(q);
+diff --git a/solr/core/src/java/org/apache/solr/update/SolrIndexConfig.java b/solr/core/src/java/org/apache/solr/update/SolrIndexConfig.java
+index 6bbadcf..a5693c1 100644
+--- a/solr/core/src/java/org/apache/solr/update/SolrIndexConfig.java
++++ b/solr/core/src/java/org/apache/solr/update/SolrIndexConfig.java
+@@ -155,7 +155,11 @@ public class SolrIndexConfig {
+   }
+ 
+   public IndexWriterConfig toIndexWriterConfig(IndexSchema schema) {
+-    IndexWriterConfig iwc = new IndexWriterConfig(luceneVersion, schema.getAnalyzer());
++    // so that we can update the analyzer on core reload, we pass null
++    // for the default analyzer, and explicitly pass an analyzer on 
++    // appropriate calls to IndexWriter
++    
++    IndexWriterConfig iwc = new IndexWriterConfig(luceneVersion, null);
+     if (maxBufferedDocs != -1)
+       iwc.setMaxBufferedDocs(maxBufferedDocs);
+ 

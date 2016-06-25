@@ -1,0 +1,5 @@
++freemarker.template.SimpleHash
+^<freemarker.template.SimpleHash:put>
+^<freemarker.template.SimpleHash:putAll>
+!freemarker.template.Template:process
+//<freemarker.template.Configuration:getTemplate>

@@ -1,0 +1,556 @@
+diff --git a/lucene/build.xml b/lucene/build.xml
+index 91d3d3c..d0059b7 100644
+--- a/lucene/build.xml
++++ b/lucene/build.xml
+@@ -276,7 +276,7 @@
+   <!-- ================================================================== -->
+   <!--                                                                    -->
+   <!-- ================================================================== -->
+-  <target name="package" depends="jar-core, jar-test-framework, build-modules, init-dist, documentation"/>
++  <target name="package" depends="jar-core, jar-test-framework, build-modules, init-dist"/>
+ 
+   <target name="nightly" depends="test, package-tgz">
+   </target>
+diff --git a/lucene/common-build.xml b/lucene/common-build.xml
+index 12d28d3..da41141 100644
+--- a/lucene/common-build.xml
++++ b/lucene/common-build.xml
+@@ -75,7 +75,7 @@
+   </path>
+ 
+   <!-- default arguments to pass to JVM executing tests -->
+-  <property name="args" value=""/>
++  <property name="args" value="-Xbootclasspath/p:/home/staccato/staccato/phosphor.jar:/home/staccato/staccato/staccato.jar -javaagent:/home/staccato/staccato/phosphor.jar"/>
+ 
+   <property name="tests.seed" value="" />
+   <property name="tests.jvms" value="auto" />
+@@ -758,9 +758,11 @@
+             shuffleOnSlave="true"
+             leaveTemporary="false"
+             seed="${tests.seed}"
++			jvm="/opt/jvm/jvm-inst/bin/java"
+         >
+             <!-- Classpaths. -->
+             <classpath refid="@{junit.classpath}"/>
++			<classpath path="/home/staccato/staccato/phosphor.jar"/>
+ 
+             <!-- Assertions. -->
+             <assertions>
+diff --git a/lucene/core/build.xml b/lucene/core/build.xml
+index e5d7f1d..0ddd539 100644
+--- a/lucene/core/build.xml
++++ b/lucene/core/build.xml
+@@ -24,7 +24,9 @@
+ 
+   <import file="../common-build.xml"/>
+ 
+-  <path id="classpath"/>
++  <path id="classpath">
++	<pathelement path="/home/staccato/staccato/staccato.jar"/>
++  </path>
+   
+   <path id="test.classpath">
+     <pathelement location="${common.dir}/build/test-framework/classes/java"/>
+diff --git a/lucene/core/src/java/org/apache/lucene/analysis/Analyzer.java b/lucene/core/src/java/org/apache/lucene/analysis/Analyzer.java
+index 9c63470..ccd14c1 100644
+--- a/lucene/core/src/java/org/apache/lucene/analysis/Analyzer.java
++++ b/lucene/core/src/java/org/apache/lucene/analysis/Analyzer.java
+@@ -21,6 +21,8 @@ import org.apache.lucene.index.IndexableField;
+ import org.apache.lucene.store.AlreadyClosedException;
+ import org.apache.lucene.util.CloseableThreadLocal;
+ 
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoTrack;
++
+ import java.io.IOException;
+ import java.io.Reader;
+ import java.util.HashMap;
+@@ -34,6 +36,7 @@ import java.util.Map;
+  * {@link TokenStreamComponents} in {@link #createComponents(String, Reader)}.
+  * The components are then reused in each call to {@link #tokenStream(String, Reader)}.
+  */
++@StaccatoTrack
+ public abstract class Analyzer {
+ 
+   private final ReuseStrategy reuseStrategy;
+diff --git a/lucene/core/src/java/org/apache/lucene/index/DocumentsWriter.java b/lucene/core/src/java/org/apache/lucene/index/DocumentsWriter.java
+index b66e088..ff80285 100644
+--- a/lucene/core/src/java/org/apache/lucene/index/DocumentsWriter.java
++++ b/lucene/core/src/java/org/apache/lucene/index/DocumentsWriter.java
+@@ -35,6 +35,8 @@ import org.apache.lucene.store.AlreadyClosedException;
+ import org.apache.lucene.store.Directory;
+ import org.apache.lucene.util.InfoStream;
+ 
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
++
+ /**
+  * This class accepts multiple added documents and directly
+  * writes segment files.
+@@ -353,6 +355,7 @@ final class DocumentsWriter {
+     return postUpdate(flushingDWPT, maybeMerge);
+   }
+ 
++  @StaccatoCheck
+   boolean updateDocument(final Iterable<? extends IndexableField> doc, final Analyzer analyzer,
+       final Term delTerm) throws IOException {
+ 
+diff --git a/lucene/test-framework/src/java/org/apache/lucene/util/LuceneTestCase.java b/lucene/test-framework/src/java/org/apache/lucene/util/LuceneTestCase.java
+index 0a4a8b7..059c2f2 100644
+--- a/lucene/test-framework/src/java/org/apache/lucene/util/LuceneTestCase.java
++++ b/lucene/test-framework/src/java/org/apache/lucene/util/LuceneTestCase.java
+@@ -947,8 +947,9 @@ public abstract class LuceneTestCase extends Assert {
+    * @see "https://issues.apache.org/jira/browse/LUCENE-4020" 
+    */
+   public static TimeZone randomTimeZone(Random random) {
+-    String tzIds[] = TimeZone.getAvailableIDs();
+-    return TimeZone.getTimeZone(tzIds[random.nextInt(tzIds.length)]);
++    return TimeZone.getDefault();
++/*    String tzIds[] = TimeZone.getAvailableIDs();
++    return TimeZone.getTimeZone(tzIds[random.nextInt(tzIds.length)]);*/
+   }
+ 
+   /** return a Locale object equivalent to its programmatic name */
+diff --git a/solr/common-build.xml b/solr/common-build.xml
+index ae1a462..fe4f0d1 100644
+--- a/solr/common-build.xml
++++ b/solr/common-build.xml
+@@ -91,6 +91,7 @@
+     <pathelement path="${grouping.jar}"/>
+     <pathelement path="${queries.jar}"/>
+     <pathelement path="${queryparser.jar}"/>
++	<pathelement path="/home/staccato/staccato/staccato.jar"/>
+     <pathelement location="${common-solr.dir}/build/solr-solrj/classes/java"/>
+     <pathelement location="${common-solr.dir}/build/solr-core/classes/java"/>
+     <path refid="additional.dependencies"/>
+diff --git a/solr/core/src/java/org/apache/solr/core/CoreContainer.java b/solr/core/src/java/org/apache/solr/core/CoreContainer.java
+index b132dd6..a4d6c3e 100644
+--- a/solr/core/src/java/org/apache/solr/core/CoreContainer.java
++++ b/solr/core/src/java/org/apache/solr/core/CoreContainer.java
+@@ -81,6 +81,8 @@ import org.w3c.dom.NodeList;
+ import org.xml.sax.InputSource;
+ import org.xml.sax.SAXException;
+ 
++import edu.washington.cse.instrumentation.runtime.TaintHelper;
++
+ 
+ /**
+  *
+@@ -93,6 +95,7 @@ public class CoreContainer
+   private static final int DEFAULT_ZK_CLIENT_TIMEOUT = 10000;
+   public static final String DEFAULT_DEFAULT_CORE_NAME = "collection1";
+   private static final boolean DEFAULT_SHARE_SCHEMA = false;
++  public static final Map<String, String> schemaMap = new HashMap<String, String>();
+   
+   protected static Logger log = LoggerFactory.getLogger(CoreContainer.class);
+   
+@@ -816,7 +819,7 @@ public class CoreContainer
+         schema = new IndexSchema(config, dcore.getSchemaName(), null);
+       }
+     }
+-
++    TaintHelper.setNewProp(this.toString() + dcore.getName() + "-schema", dcore.getName() + schema.getResourceName(), schemaMap, schema);
+     SolrCore core = new SolrCore(dcore.getName(), null, config, schema, dcore);
+ 
+     if (zkController == null && core.getUpdateHandler().getUpdateLog() != null) {
+@@ -884,7 +887,8 @@ public class CoreContainer
+     }
+     if (core == null)
+       throw new SolrException( SolrException.ErrorCode.BAD_REQUEST, "No such core: " + name );
+-
++    TaintHelper.startUpdate(this.toString() + name + "-schema");
++    try {
+       CoreDescriptor cd = core.getCoreDescriptor();
+     
+       File instanceDir = new File(cd.getInstanceDir());
+@@ -930,6 +934,9 @@ public class CoreContainer
+         coreToOrigName.put(newCore, origName);
+       }
+       register(name, newCore, false);
++    } finally {
++      TaintHelper.endUpdate(this.toString() + name + "-schema");
++    }
+   }
+ 
+   private String checkDefault(String name) {
+diff --git a/solr/core/src/java/org/apache/solr/core/SolrCore.java b/solr/core/src/java/org/apache/solr/core/SolrCore.java
+index 70d4c6c..5901fd2 100644
+--- a/solr/core/src/java/org/apache/solr/core/SolrCore.java
++++ b/solr/core/src/java/org/apache/solr/core/SolrCore.java
+@@ -75,11 +75,17 @@ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ import org.xml.sax.SAXException;
+ 
++import edu.washington.cse.instrumentation.runtime.TaintHelper;
++
+ import javax.xml.parsers.ParserConfigurationException;
++
++import java.io.BufferedWriter;
+ import java.io.File;
+ import java.io.FileInputStream;
++import java.io.FileWriter;
+ import java.io.IOException;
+ import java.io.InputStream;
++import java.io.PrintStream;
+ import java.io.Writer;
+ import java.lang.reflect.Constructor;
+ import java.net.URL;
+@@ -363,7 +369,7 @@ public final class SolrCore implements SolrInfoMBean {
+     
+     IndexSchema schema = new IndexSchema(config,
+         getSchema().getResourceName(), null);
+-    
++    TaintHelper.setNewProp(coreDescriptor.getCoreContainer().toString() + this.name + "-schema", getName() + schema.getResourceName(), CoreContainer.schemaMap, schema);
+     updateHandler.incref();
+     SolrCore core = new SolrCore(getName(), null, config,
+         schema, coreDescriptor, updateHandler);
+@@ -494,7 +500,8 @@ public final class SolrCore implements SolrInfoMBean {
+             return (UpdateHandler) con.newInstance(this, updateHandler);
+           } 
+         }
+-        throw new SolrException(SolrException.ErrorCode.SERVER_ERROR,"Error Instantiating "+msg+", "+className+ " could not find proper constructor for " + UpdateHandler.class.getName());
++        throw new SolrException(SolrException.ErrorCode.SERVER_ERROR,"Error Instantiating "+msg+", "+className+ " could not find proper " +
++        		"constructor for " + UpdateHandler.class.getName());
+     } catch (SolrException e) {
+       throw e;
+     } catch (Exception e) {
+diff --git a/solr/core/src/java/org/apache/solr/schema/IndexSchema.java b/solr/core/src/java/org/apache/solr/schema/IndexSchema.java
+index 75edf3c..9315aaf 100644
+--- a/solr/core/src/java/org/apache/solr/schema/IndexSchema.java
++++ b/solr/core/src/java/org/apache/solr/schema/IndexSchema.java
+@@ -40,6 +40,11 @@ import javax.xml.xpath.XPathConstants;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ 
++import edu.washington.cse.instrumentation.runtime.PropagationTarget;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoPropagate;
++import edu.washington.cse.instrumentation.runtime.annotation.StaccatoTrack;
++import edu.washington.cse.instrumentation.runtime.containers.StaccatoMap;
++
+ import java.util.ArrayList;
+ import java.util.Arrays;
+ import java.util.Collection;
+@@ -55,6 +60,7 @@ import java.util.Map;
+  *
+  *
+  */
++@StaccatoTrack
+ public final class IndexSchema {
+   public static final String DEFAULT_SCHEMA_FILE = "schema.xml";
+   public static final String LUCENE_MATCH_VERSION_PARAM = "luceneMatchVersion";
+@@ -66,10 +72,9 @@ public final class IndexSchema {
+   private float version;
+   private final SolrResourceLoader loader;
+ 
+-  private final HashMap<String, SchemaField> fields = new HashMap<String,SchemaField>();
+-
++  private final Map<String, SchemaField> fields = new StaccatoMap<String,SchemaField>(new HashMap<String,SchemaField>());
+ 
+-  private final HashMap<String, FieldType> fieldTypes = new HashMap<String,FieldType>();
++  private final Map<String, FieldType> fieldTypes = new StaccatoMap<String, FieldType>(new HashMap<String,FieldType>());
+ 
+   private final List<SchemaField> fieldsWithDefaultValue = new ArrayList<SchemaField>();
+   private final Collection<SchemaField> requiredFields = new HashSet<SchemaField>();
+@@ -154,6 +159,7 @@ public final class IndexSchema {
+    * Outside <code>inform</code>, this could potentially throw a ConcurrentModificationException
+    * </p>
+    */
++  @StaccatoPropagate(PropagationTarget.RETURN)
+   public Map<String,SchemaField> getFields() { return fields; }
+ 
+   /**
+@@ -172,6 +178,7 @@ public final class IndexSchema {
+    * Outside <code>inform</code>, this could potentially throw a ConcurrentModificationException
+    * </p>
+    */
++  @StaccatoPropagate(PropagationTarget.RETURN)
+   public Map<String,FieldType> getFieldTypes() { return fieldTypes; }
+ 
+   /**
+@@ -200,6 +207,7 @@ public final class IndexSchema {
+    * a field specific Analyzer based on the field type.
+    * </p>
+    */
++  @StaccatoPropagate(PropagationTarget.RETURN)
+   public Analyzer getAnalyzer() { return analyzer; }
+ 
+ 
+@@ -565,7 +573,6 @@ public final class IndexSchema {
+ 
+     // create the field analyzers
+     refreshAnalyzers();
+-
+   }
+ 
+   private void addDynamicField(List<DynamicField> dFields, SchemaField f) {
+diff --git a/solr/core/src/java/org/apache/solr/update/DirectUpdateHandler2.java b/solr/core/src/java/org/apache/solr/update/DirectUpdateHandler2.java
+index 66984fb..db099ef 100644
+--- a/solr/core/src/java/org/apache/solr/update/DirectUpdateHandler2.java
++++ b/solr/core/src/java/org/apache/solr/update/DirectUpdateHandler2.java
+@@ -198,7 +198,7 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
+ 
+           Document luceneDocument = cmd.getLuceneDocument();
+           // SolrCore.verbose("updateDocument",updateTerm,luceneDocument,writer);
+-          writer.updateDocument(updateTerm, luceneDocument);
++          writer.updateDocument(updateTerm, luceneDocument, schema.getAnalyzer());
+           // SolrCore.verbose("updateDocument",updateTerm,"DONE");
+ 
+ 
+@@ -219,7 +219,7 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
+ 
+       } else {
+         // allow duplicates
+-        writer.addDocument(cmd.getLuceneDocument());
++        writer.addDocument(cmd.getLuceneDocument(), schema.getAnalyzer());
+         if (ulog != null) ulog.add(cmd);
+       }
+ 
+@@ -371,7 +371,7 @@ public class DirectUpdateHandler2 extends UpdateHandler implements SolrCoreState
+     synchronized (this) {
+       IndexWriter writer = solrCoreState.getIndexWriter(core);
+ 
+-      writer.updateDocument(idTerm, luceneDocument);
++      writer.updateDocument(idTerm, luceneDocument, core.getSchema().getAnalyzer());
+ 
+       for (Query q : dbqList) {
+         writer.deleteDocuments(q);
+diff --git a/solr/core/src/java/org/apache/solr/update/SolrIndexConfig.java b/solr/core/src/java/org/apache/solr/update/SolrIndexConfig.java
+index 6bbadcf..b9da98b 100644
+--- a/solr/core/src/java/org/apache/solr/update/SolrIndexConfig.java
++++ b/solr/core/src/java/org/apache/solr/update/SolrIndexConfig.java
+@@ -155,7 +155,7 @@ public class SolrIndexConfig {
+   }
+ 
+   public IndexWriterConfig toIndexWriterConfig(IndexSchema schema) {
+-    IndexWriterConfig iwc = new IndexWriterConfig(luceneVersion, schema.getAnalyzer());
++    IndexWriterConfig iwc = new IndexWriterConfig(luceneVersion, null);
+     if (maxBufferedDocs != -1)
+       iwc.setMaxBufferedDocs(maxBufferedDocs);
+ 
+@@ -200,7 +200,8 @@ public class SolrIndexConfig {
+         tieredMergePolicy.setSegmentsPerTier(mergeFactor);
+       }
+     } else {
+-      log.warn("Use of compound file format or mergefactor cannot be configured if merge policy is not an instance of LogMergePolicy or TieredMergePolicy. The configured policy's defaults will be used.");
++      log.warn("Use of compound file format or mergefactor cannot be configured if merge policy is not an instance of LogMergePolicy or " +
++      		"TieredMergePolicy. The configured policy's defaults will be used.");
+     }
+ 
+     if (mergePolicyInfo != null)
+diff --git a/solr/core/src/java/org/apache/solr/update/SolrIndexWriter.java b/solr/core/src/java/org/apache/solr/update/SolrIndexWriter.java
+index d3a9f92..d07ea79 100644
+--- a/solr/core/src/java/org/apache/solr/update/SolrIndexWriter.java
++++ b/solr/core/src/java/org/apache/solr/update/SolrIndexWriter.java
+@@ -54,7 +54,8 @@ public class SolrIndexWriter extends IndexWriter {
+   String name;
+   private DirectoryFactory directoryFactory;
+ 
+-  public SolrIndexWriter(String name, String path, DirectoryFactory directoryFactory, boolean create, IndexSchema schema, SolrIndexConfig config, IndexDeletionPolicy delPolicy, Codec codec, boolean forceNewDirectory) throws IOException {
++  public SolrIndexWriter(String name, String path, DirectoryFactory directoryFactory, boolean create, IndexSchema schema, SolrIndexConfig config, IndexDeletionPolicy delPolicy, 
++      Codec codec, boolean forceNewDirectory) throws IOException {
+     super(
+         directoryFactory.get(path, config.lockType, forceNewDirectory),
+         config.toIndexWriterConfig(schema).
+diff --git a/solr/core/src/test/org/apache/solr/AnalysisAfterCoreReloadTest.java b/solr/core/src/test/org/apache/solr/AnalysisAfterCoreReloadTest.java
+new file mode 100644
+index 0000000..9ba6918
+--- /dev/null
++++ b/solr/core/src/test/org/apache/solr/AnalysisAfterCoreReloadTest.java
+@@ -0,0 +1,174 @@
++package org.apache.solr;
++
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one or more
++ * contributor license agreements.  See the NOTICE file distributed with
++ * this work for additional information regarding copyright ownership.
++ * The ASF licenses this file to You under the Apache License, Version 2.0
++ * (the "License"); you may not use this file except in compliance with
++ * the License.  You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++import java.io.File;
++import java.io.IOException;
++
++import org.apache.commons.io.FileUtils;
++import org.apache.solr.client.solrj.SolrQuery;
++import org.apache.solr.client.solrj.SolrServer;
++import org.apache.solr.client.solrj.embedded.JettySolrRunner;
++import org.apache.solr.client.solrj.impl.HttpSolrServer;
++import org.apache.solr.client.solrj.request.CoreAdminRequest;
++import org.apache.solr.client.solrj.request.QueryRequest;
++import org.apache.solr.client.solrj.request.UpdateRequest;
++import org.apache.solr.client.solrj.request.AbstractUpdateRequest.ACTION;
++import org.apache.solr.common.SolrInputDocument;
++import org.apache.solr.core.SolrCore;
++import org.apache.solr.util.AbstractSolrTestCase;
++import org.junit.After;
++
++public class AnalysisAfterCoreReloadTest extends AbstractSolrTestCase {
++  private File homeDir;
++  int port = 0;
++  static final String context = "/solr";
++  JettySolrRunner jetty;
++  static final String collection = "collection1";
++  
++  @After
++  public void cleanUp() throws Exception {
++    jetty.stop();
++    if (homeDir != null && homeDir.isDirectory() && homeDir.exists())
++      recurseDelete(homeDir);
++  }
++  
++  @Override
++  public String getSolrHome() { 
++    return homeDir.getAbsolutePath(); 
++  }
++
++  @Override
++  public void setUp() throws Exception {
++    homeDir = new File(TEMP_DIR + File.separator + "solr-test-home-" + System.nanoTime());
++    homeDir.mkdirs();
++    FileUtils.copyDirectory(new File(getFile("solr/" + collection).getParent()), homeDir, false);
++
++    super.setUp();
++    
++    jetty = new JettySolrRunner(getSolrHome(), context, 0 );
++    jetty.start(false);
++    port = jetty.getLocalPort();
++  }
++  
++  public void testStopwordsAfterCoreReload() throws Exception {
++    SolrInputDocument doc = new SolrInputDocument();
++    doc.setField( "id", "42" );
++    doc.setField( "teststop", "terma stopworda stopwordb stopwordc" );
++    
++    // default stopwords - stopworda and stopwordb
++    
++    UpdateRequest up = new UpdateRequest();
++    up.setAction(ACTION.COMMIT, true, true);
++    up.add( doc );
++    up.process( getSolrCore() );
++
++    SolrQuery q = new SolrQuery();
++    QueryRequest r = new QueryRequest( q );
++    q.setQuery( "teststop:terma" );
++    assertEquals( 1, r.process( getSolrCore() ).getResults().size() );
++
++    q = new SolrQuery();
++    r = new QueryRequest( q );
++    q.setQuery( "teststop:stopworda" );
++    assertEquals( 0, r.process( getSolrCore() ).getResults().size() );
++
++    q = new SolrQuery();
++    r = new QueryRequest( q );
++    q.setQuery( "teststop:stopwordb" );
++    assertEquals( 0, r.process( getSolrCore() ).getResults().size() );
++
++    q = new SolrQuery();
++    r = new QueryRequest( q );
++    q.setQuery( "teststop:stopwordc" );
++    assertEquals( 1, r.process( getSolrCore() ).getResults().size() );
++
++    // overwrite stopwords file with stopword list ["stopwordc"] and reload the core
++    overwriteStopwords("stopwordc\n");
++    SolrServer coreadmin = getSolrAdmin();
++    CoreAdminRequest.reloadCore(collection, coreadmin);
++
++    up.process( getSolrCore() );
++
++    q = new SolrQuery();
++    r = new QueryRequest( q );
++    q.setQuery( "teststop:terma" );
++    assertEquals( 1, r.process( getSolrCore() ).getResults().size() );
++
++    q = new SolrQuery();
++    r = new QueryRequest( q );
++    q.setQuery( "teststop:stopworda" );
++    // stopworda is no longer a stopword
++    assertEquals( 1, r.process( getSolrCore() ).getResults().size() );
++
++    q = new SolrQuery();
++    r = new QueryRequest( q );
++    q.setQuery( "teststop:stopwordb" );
++    // stopwordb is no longer a stopword
++    assertEquals( 1, r.process( getSolrCore() ).getResults().size() );
++
++    q = new SolrQuery();
++    r = new QueryRequest( q );
++    q.setQuery( "teststop:stopwordc" );
++    // stopwordc should be a stopword
++    assertEquals( 0, r.process( getSolrCore() ).getResults().size() );
++  }
++  
++  private void overwriteStopwords(String stopwords) throws IOException {
++    SolrCore core = h.getCoreContainer().getCore(collection);
++    try {
++      String configDir = core.getResourceLoader().getConfigDir();
++      File file = new File(configDir, "stopwords.txt");
++      FileUtils.writeStringToFile(file, stopwords);
++    } finally {
++      core.close();
++    }
++  }
++  
++  protected SolrServer getSolrAdmin() {
++    return createServer("");
++  }
++  protected SolrServer getSolrCore() {
++    return createServer(collection);
++  }
++  private SolrServer createServer( String name ) {
++    try {
++      // setup the server...
++      String url = "http://localhost:"+port+context+"/"+name;
++      HttpSolrServer s = new HttpSolrServer( url );
++      s.setConnectionTimeout(SolrTestCaseJ4.DEFAULT_CONNECTION_TIMEOUT);
++      s.setDefaultMaxConnectionsPerHost(100);
++      s.setMaxTotalConnections(100);
++      return s;
++    }
++    catch( Exception ex ) {
++      throw new RuntimeException( ex );
++    }
++  }
++
++  @Override
++  public String getSchemaFile() {
++    return "schema.xml";
++  }
++
++  @Override
++  public String getSolrConfigFile() {
++    return "solrconfig.xml";
++  }
++
++}
+\ No newline at end of file
+diff --git a/solr/core/src/test/org/apache/solr/cloud/BasicZkTest.java b/solr/core/src/test/org/apache/solr/cloud/BasicZkTest.java
+index 58dd4a1..c1630ec 100644
+--- a/solr/core/src/test/org/apache/solr/cloud/BasicZkTest.java
++++ b/solr/core/src/test/org/apache/solr/cloud/BasicZkTest.java
+@@ -48,7 +48,6 @@ public class BasicZkTest extends AbstractZkTestCase {
+   
+   @Test
+   public void testBasic() throws Exception {
+-    
+     // test using ZooKeeper
+     assertTrue("Not using ZooKeeper", h.getCoreContainer().isZooKeeperAware());
+     
+diff --git a/solr/test-framework/src/java/org/apache/solr/BaseDistributedSearchTestCase.java b/solr/test-framework/src/java/org/apache/solr/BaseDistributedSearchTestCase.java
+index 4432b66..c401b95 100644
+--- a/solr/test-framework/src/java/org/apache/solr/BaseDistributedSearchTestCase.java
++++ b/solr/test-framework/src/java/org/apache/solr/BaseDistributedSearchTestCase.java
+@@ -191,7 +191,6 @@ public abstract class BaseDistributedSearchTestCase extends SolrTestCaseJ4 {
+     controlJetty = createJetty(new File(getSolrHome()), testDir + "/control/data", null, getSolrConfigFile(), getSchemaFile());
+ 
+     controlClient = createNewSolrServer(controlJetty.getLocalPort());
+-
+     shardsArr = new String[numShards];
+     StringBuilder sb = new StringBuilder();
+     for (int i = 0; i < numShards; i++) {

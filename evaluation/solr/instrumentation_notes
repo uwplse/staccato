@@ -1,0 +1,7 @@
+* IndexSchema is loaded from xml via the IndexSchema::load
+* field types and field definitions are loaded in readSchema(is)
+* xpath -> property names
+* need tainting primitive (ugh ugh ugh)
+* IndexSchema carries taint!
+
+* Index config doesn't seem updateable?

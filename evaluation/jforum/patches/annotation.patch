@@ -1,0 +1,151 @@
+diff --git a/src/net/jforum/context/web/WebResponseContext.java b/src/net/jforum/context/web/WebResponseContext.java
+index 2e29b70..a3bf81d 100644
+--- a/src/net/jforum/context/web/WebResponseContext.java
++++ b/src/net/jforum/context/web/WebResponseContext.java
+@@ -76,12 +76,10 @@ public class WebResponseContext implements ResponseContext
+ 	{
+ 		return response.containsHeader(name);
+ 	}
+-
+ 	public void setHeader(String name, String value)
+ 	{
+ 		response.setHeader(name, value);
+ 	}
+-
+ 	public void addCookie(Cookie cookie)
+ 	{
+ 		response.addCookie(cookie);
+@@ -91,7 +89,6 @@ public class WebResponseContext implements ResponseContext
+ 	{
+ 		return response.encodeRedirectURL(url);
+ 	}
+-
+ 	public void sendRedirect(String location) throws IOException
+ 	{
+ 		if (SystemGlobals.getBoolValue(ConfigKeys.REDIRECT_ABSOLUTE_PATHS)) {
+diff --git a/src/net/jforum/entities/Smilie.java b/src/net/jforum/entities/Smilie.java
+index 834d77d..a7a7b2b 100644
+--- a/src/net/jforum/entities/Smilie.java
++++ b/src/net/jforum/entities/Smilie.java
+@@ -103,6 +103,7 @@ public class Smilie implements Serializable
+ 	/**
+ 	 * @param image
+ 	 */
++	@StaccatoPropagate(PropagationTarget.RECEIVER)
+ 	public void setUrl(String url) {
+ 		this.url = url;
+ 	}
+@@ -110,6 +111,7 @@ public class Smilie implements Serializable
+ 	/**
+ 	 * @return
+ 	 */
++	@StaccatoPropagate(PropagationTarget.RECEIVER)
+ 	public String getDiskName() {
+ 		return this.diskName;
+ 	}
+diff --git a/src/net/jforum/repository/SmiliesRepository.java b/src/net/jforum/repository/SmiliesRepository.java
+index a34c8f7..b6e6441 100644
+--- a/src/net/jforum/repository/SmiliesRepository.java
++++ b/src/net/jforum/repository/SmiliesRepository.java
+@@ -84,7 +84,6 @@ public class SmiliesRepository implements Cacheable
+ 			throw new SmiliesLoadException("Error while loading smilies: " + e);
+ 		}
+ 	}
+-	
+ 	public static List getSmilies()
+ 	{
+ 		List list = (List)cache.get(FQN, ENTRIES);
+diff --git a/src/net/jforum/util/ConfTrackProperties.java b/src/net/jforum/util/ConfTrackProperties.java
+index 031b7be..612b066 100644
+--- a/src/net/jforum/util/ConfTrackProperties.java
++++ b/src/net/jforum/util/ConfTrackProperties.java
+@@ -8,18 +8,21 @@ import edu.washington.cse.instrumentation.runtime.annotation.StaccatoPropagate;
+ 
+ public class ConfTrackProperties extends Properties {
+ 	@Override
++	@StaccatoPropagate(PropagationTarget.RECEIVER)
+ 	public synchronized Object put(Object key, Object value) {
+ 		// TODO Auto-generated method stub
+ 		return super.put(key, value);
+ 	}
+ 	
+ 	@Override
++	@StaccatoPropagate(PropagationTarget.RECEIVER)
+ 	public synchronized void putAll(Map<? extends Object, ? extends Object> t) {
+ 		// TODO Auto-generated method stub
+ 		super.putAll(t);
+ 	}
+ 	
+ 	@Override
++	@StaccatoPropagate(PropagationTarget.RECEIVER)
+ 	public synchronized Object setProperty(String key, String value) {
+ 		// TODO Auto-generated method stub
+ 		return super.setProperty(key, value);
+diff --git a/src/net/jforum/util/I18n.java b/src/net/jforum/util/I18n.java
+index e3504f4..22bc409 100644
+--- a/src/net/jforum/util/I18n.java
++++ b/src/net/jforum/util/I18n.java
+@@ -260,6 +260,7 @@ public class I18n
+ 	 *            formated according to {@link java.text.MessageFormat}specification
+ 	 * @return String With the message
+ 	 */
++	@StaccatoCheck
+ 	public static String getMessage(String localeName, String messageName, Object params[])
+ 	{
+ 		return MessageFormat.format(((Properties) messagesMap.get(localeName)).getProperty(messageName), params);
+diff --git a/src/net/jforum/util/SafeHtml.java b/src/net/jforum/util/SafeHtml.java
+index d589c87..9bdf749 100644
+--- a/src/net/jforum/util/SafeHtml.java
++++ b/src/net/jforum/util/SafeHtml.java
+@@ -90,6 +90,7 @@ public class SafeHtml
+ 		allowedProtocols = splitAndTrim(SystemGlobals.getValue(ConfigKeys.HTML_LINKS_ALLOW_PROTOCOLS));
+ 	}
+ 	
++	@StaccatoPropagate(PropagationTarget.RETURN)
+ 	private static Set splitAndTrim(String s)
+ 	{
+ 		Set data = new StaccatoSet(new HashSet());
+@@ -140,6 +141,7 @@ public class SafeHtml
+ 		return sb.toString();
+ 	}
+ 	
++	@StaccatoCheck(CheckLevel.STRICT)	
+ 	public Set getWelcomeTags() {
+ 		return welcomeTags;
+ 	}
+diff --git a/src/net/jforum/util/preferences/VariableExpander.java b/src/net/jforum/util/preferences/VariableExpander.java
+index 1991e6e..eb8775f 100644
+--- a/src/net/jforum/util/preferences/VariableExpander.java
++++ b/src/net/jforum/util/preferences/VariableExpander.java
+@@ -74,6 +74,7 @@ public class VariableExpander
+ 	{
+ 		cache.clear();
+ 	}
++	@StaccatoPropagate(PropagationTarget.RETURN)
+ 	public String expandVariables(String source)
+ 	{
+ 		String result = (String)this.cache.get(source);
+diff --git a/src/net/jforum/view/admin/AttachmentsAction.java b/src/net/jforum/view/admin/AttachmentsAction.java
+index 2952800..797b2e9 100644
+--- a/src/net/jforum/view/admin/AttachmentsAction.java
++++ b/src/net/jforum/view/admin/AttachmentsAction.java
+@@ -62,6 +62,7 @@ import edu.washington.cse.instrumentation.runtime.annotation.StaccatoCheck;
+  * @author Rafael Steil
+  * @version $Id: AttachmentsAction.java,v 1.16 2006/08/20 22:47:45 rafaelsteil Exp $
+  */
++@StaccatoCheck(CheckLevel.NONE)
+ public class AttachmentsAction extends AdminCommand
+ {
+ 	public void configurations()
+diff --git a/src/net/jforum/view/admin/ConfigAction.java b/src/net/jforum/view/admin/ConfigAction.java
+index 7dfdebd..965deff 100644
+--- a/src/net/jforum/view/admin/ConfigAction.java
++++ b/src/net/jforum/view/admin/ConfigAction.java
+@@ -73,6 +73,7 @@ import freemarker.template.SimpleHash;
+  * @author Rafael Steil
+  * @version $Id: ConfigAction.java,v 1.22 2008/01/23 01:27:16 rafaelsteil Exp $
+  */
++@StaccatoCheck(CheckLevel.NONE)
+ public class ConfigAction extends AdminCommand 
+ {
+ 	public ConfigAction() {}

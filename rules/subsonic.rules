@@ -1,0 +1,5 @@
+#include rt.rules
+#include servlet.rules
+#include acegisecurity.rules
+
+@net.sourceforge.subsonic.domain:set*
